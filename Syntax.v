@@ -91,7 +91,7 @@ Notation "x" := x (in custom TIH at level 0, x constr at level 0) : ham_scope.
 
 (* Not sure how to get A.O to work without . being parsed as end-of-statement *)
 Notation "A > O" := (HIdOp A O)
-    (in custom TIH at level 60) : ham_scope.
+    (in custom TIH at level 5) : ham_scope.
 
 Notation "( A : t , M )" := [(A, t, M)]
     (in custom TIH at level 50,
@@ -118,7 +118,7 @@ Site
     qubit "Q2"
     qubit "Q3" ;
 Hamiltonian
-    ( "H1" : R1 , "Q1" > 3 * X * Z + Y * Y )
+    ( "H1" : R1 , "Q1" > X * "Q2" > Z + "Q3" > Y )
     ( "H2" : R1 , "Q2" > Y )
     ( "H3" : R1 , "F1" > c )
 ) : H_Program.
