@@ -38,14 +38,36 @@ TIH_Sequence := (A : t, M)*
 Program := <b>Site</b> Declaration; <b>Hamiltonian</b> TIH_Sequence
 </code></pre>
 
-### Explanations
+### Example
 
-TODO
+The following is a valid Hamiltonian simulation program:
+
+```
+Site
+    fock "F1"
+    qubit "Q1"
+    qubit "Q2"
+    qubit "Q3" ;
+Hamiltonian
+    ( "H1" : R1 , "Q1" > X * "Q2" > Z + "Q3" > Y )
+    ( "H2" : R1 , "Q2" > Y )
+    ( "H3" : R1 , "F1" > c )
+)
+```
+
+In the first *Site* section, four variables are declared. We have `F1` of type fock, as well as `Q1`, `Q2`, and `Q3` of type qubit.
+We then describe the desired evolution in the *Hamiltonian* section.
+Namely, we have three Hamiltonians, `H1`, `H2`, and `H3`, applied in that order for one unit of time each.
+
+The corresponding quantities are... TODO learn how to work with MathML?
+```
+H1 = X ot Z ot I + I ot I ot Y...
+```
 
 ## Semantics
 
 Goal: Be able to prove when different Hamiltonians have the same semantics.
-For example, if `H_1` and `H_2` commute, then `H_1H_2` and `H_2H_1` have the same semantics... (Isn't this trivial? Did I mishear something during the meeting?)
+For example, if `H_1` and `H_2` commute, then `(H_1: t_1) (H_2, t_2)` and `(H_2: t_2) (H_1, t_1)` have the same semantics.
 
 Challenge: matrix exponentials. Not even sure how to represent it.
 We were suggested to define it symbolically and state valid rewrite rules that respect Schrödinger's equation.
