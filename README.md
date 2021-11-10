@@ -16,11 +16,20 @@ and to construct quantum algorithms that rely on Hamiltonian dynamics. A Hamilto
 H(t) is Hermitian to ensure the energies are real valued numbers. The eigenvalue for a specific eigenstate of H(t) represent the energy of the state represented by the eigenstate. The ground state of a 
 Hamiltonian corresponds to the eigenstate with the smallest eigenvalue. This represents the state with the lowest energy level. Finding the ground state of a Hamiltonian is a particularly useful problem 
 used in many quantum applications (i.e. quantum verification, quantum algorithms, etc.) and is generally difficult for even quantum computer. "Simulating" a Hamiltonian can refer to finding the ground state
-of a Hamiltonian, but can also refer to describing a quantum system at a given time t. In quantum mechanics, a Hamiltonian can be used describe the time evolution of the wave function through the Schrodinger equation. Namely, we can describe a wave function, |&phi;(t)>, through the Schrodinger equation: 	 i\*&#8463;\*d/dt|&phi;(t)> = H(t)|&phi;(t)>. 
-where &#8463; is Planck's constant. Given the intial wave function at time t=0, we can solve this differential equation to find the wave function at any later time t. 
+of a Hamiltonian, but can also refer to describing a quantum system at a given time t. In quantum mechanics, a Hamiltonian can be used describe the time evolution of the wave function through the Schrodinger equation. Namely, we can describe a wave function,
+![phi-t](http://chart.apis.google.com/chart?cht=tx&chl={\quad}|\phi(t)\rangle{\quad})
+through the Schrodinger equation:
+![schrodinger-eq](http://chart.apis.google.com/chart?cht=tx&chl={\quad}i\hbar|\phi'(t)\rangle=H(t)|\phi(t)\rangle{\quad}), 
+where ![hbar](http://chart.apis.google.com/chart?cht=tx&chl=\hbar) is Planck's constant. Given the intial wave function at time
+![teq0](http://chart.apis.google.com/chart?cht=tx&chl={\quad}t=0{\quad}),
+we can solve this differential equation to find the wave function at any later time t. 
 
-Hamiltonians can be time independent, or time dependent. In this work, we will only consider time-independent Hamiltonians. For time independent hamiltonians, the solution of the Schrodinger equation is |&phi;(t)> = U(t)|&phi;(0)> where the unitary U(t) = e^{-iHt/&#8463;}. 
-We can describe a Hamiltoninan H to be efficiently simulatable if for any t > 0, &epsilon; > 0, there exists a unitary U' that can be implimented using a polynomial number of gates such that ||U' - H(t) || < &epsilon;. In our work, we will formall prove 
+Hamiltonians can be time independent, or time dependent. In this work, we will only consider time-independent Hamiltonians. For time independent hamiltonians, the solution of the Schrodinger equation is
+![sol-ti](http://chart.apis.google.com/chart?cht=tx&chl={\quad}|\phi(t)\rangle=U(t)|\phi(t)\rangle{\quad})
+where the unitary
+![sol-U](http://chart.apis.google.com/chart?cht=tx&chl={\quad}e^{-iHt/\hbar}{\quad}). 
+A Hamiltonian H is efficiently simulatable if for any t > 0, &epsilon; > 0, there exists a polynomial-sized quantum circuit C such that
+![sol-circuit](http://chart.apis.google.com/chart?cht=tx&chl={\quad}\mid|C-H(t)\mid|<\varepsilon{\quad}). In our work, we will formall prove 
 properites of Hamiltonians and their efficient simulation. 
 
 ## Relevant works
@@ -54,9 +63,9 @@ A program contains two sections: *Site* and *Hamiltonian*.
 In our *Site* section, variables are declared. In this example, we have `F1` of type fock, as well as `Q1`, `Q2`, and `Q3` of type qubit.
 In the *Hamiltonian* section, the desired physical evolution is specified.
 In our example, we have three Hamiltonians, <!-- google charts LaTeX workaround; you hate to see it -->
-* ![H1](http://chart.apis.google.com/chart?cht=tx&chl=H_1=\mathsf{I}{\otimes}\mathsf{X}{\otimes}\mathsf{Z}{\otimes}\mathsf{I}%2B\mathsf{I}{\otimes}\mathsf{I}{\otimes}\mathsf{I}{\otimes}\mathsf{Y})
-* ![H2](http://chart.apis.google.com/chart?cht=tx&chl=H_2=\mathsf{I}{\otimes}\mathsf{I}{\otimes}\mathsf{Y}{\otimes}\mathsf{I})
-* ![H3](http://chart.apis.google.com/chart?cht=tx&chl=H_3=c{\otimes}\mathsf{I}{\otimes}\mathsf{I}{\otimes}\mathsf{I})
+* ![H1](http://chart.apis.google.com/chart?cht=tx&chl={\quad}H_1=\mathsf{I}{\otimes}\mathsf{X}{\otimes}\mathsf{Z}{\otimes}\mathsf{I}%2B\mathsf{I}{\otimes}\mathsf{I}{\otimes}\mathsf{I}{\otimes}\mathsf{Y}{\quad})
+* ![H2](http://chart.apis.google.com/chart?cht=tx&chl={\quad}H_2=\mathsf{I}{\otimes}\mathsf{I}{\otimes}\mathsf{Y}{\otimes}\mathsf{I}{\quad})
+* ![H3](http://chart.apis.google.com/chart?cht=tx&chl={\quad}H_3=c{\otimes}\mathsf{I}{\otimes}\mathsf{I}{\otimes}\mathsf{I}{\quad})
 
 which are applied for one unit of time each.
 
