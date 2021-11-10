@@ -12,8 +12,9 @@ In alphabetical order by last name:
 ## What is Hamiltonian simulation?
 
 Hamiltonian simulation methods are a widely studied area and have been used to efficiently simulate physical quantum systems 
-and to construct quantum algorithms that rely on Hamiltonian dynamics. A Hamiltonian H(t) of a system is an operator that represents the total energy of a given quantum system. We also require that 
-H(t) is Hermitian to ensure the energies are real valued. The eigenvalue for a specific eigenstate of H(t) represent the energy of the state represented by the eigenstate.
+and to construct quantum algorithms that rely on Hamiltonian dynamics. A Hamiltonian H(t) of a system is an operator that represents the total energy of a given quantum system.
+The eigenvalue for a specific eigenstate of H(t) represent the energy of the state represented by the eigenstate.
+We also require that H(t) is Hermitian to ensure the energies are real valued.
 <!-- The ground state of a 
 Hamiltonian corresponds to the eigenstate with the smallest eigenvalue. This represents the state with the lowest energy level. Finding the ground state of a Hamiltonian is a particularly useful problem 
 used in many quantum applications (i.e. quantum verification, quantum algorithms, etc.) and is generally difficult for even quantum computer. "Simulating" a Hamiltonian can refer to finding the ground state
