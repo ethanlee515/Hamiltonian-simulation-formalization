@@ -9,17 +9,13 @@ We will implement the syntax. We then either prove some basic facts on its seman
 ## What is Hamiltonian simulation?
 
 TODO Maybe say something about Schrödinger's equation and its solution?
-#Motivation
-One of the first proposed  potential applications of quantum computers was to use them to efficiently simulate quantum sytems. 
-Classically, tasks such as simulating molecular behavior or finding the ground state energy of large quantum sytems are 
-often computationally difficult. As a result, algorithms for simulating Hamiltonian dynamics have been a widely studied area
-of research. "add smt about verifying algs."  
 
-#Background
+
+##Background
 Hamiltonian simulation methods are a widely studeid area and have been used to efficiently simulate physical quantum systems
-and used to construct quantum algorithms that rely on Hamiltonian dynamics. A Hamiltonian H(t) of a system is an operator that corresponds to the total energy of the quantum system it is being used to describe. 
+and to construct quantum algorithms that rely on Hamiltonian dynamics. A Hamiltonian H(t) of a system is an operator that corresponds to the total energy of the quantum system it is being used to describe. 
 In quantum mechanics, a Hamiltonian can be used describe the time evolution of the wave function through the Schrodinger equation. 
-Namely, given wave function, |&phi>
+Namely, given wave function, |&phi >
 ## Relevant works
 
 TODO describe [this library](https://rand.cs.uchicago.edu/vqc/) and maybe [SQIR/VOQC](https://github.com/inQWIRE/SQIR).
