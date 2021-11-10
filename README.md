@@ -77,3 +77,6 @@ Another goal of this project is to implement and prove facts about Hamiltonian c
 
 The method of compilation will be via *trotterization*. Trotterization decomposes the unitary induced by a Hamiltonian into a product of local terms. 
 We can then analyze its properties by, for example, proving the error bound on trotterization for non-commuting Hamiltonians.
+
+If time permits, we may attempt to compile the Hamiltonian into a popular quantum programming language such as [OpenQASM](https://github.com/Qiskit/openqasm),
+so that it can be run on a simulator or a real quantum computer.
