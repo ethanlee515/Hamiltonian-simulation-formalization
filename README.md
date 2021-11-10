@@ -1,22 +1,28 @@
 # Hamiltonian Simulation Formulation
 
-We will implement Hamiltonian simulation in Coq.
+As our final project, we will formalize the *Hamiltonian simulation algorithm* in Coq.
 
-We will implement the syntax. We then either prove some basic facts on its semantics, or implement compilation to quantum circuit. Or possibly both if time permits.
+### Team
+
+* Yi (Ethan) Lee
+* Connor Clayton
+* Manasi Shingane
 
 ## What is Hamiltonian simulation?
 
-Hamiltonian simulation methods are a widely studeid area and have been used to efficiently simulate physical quantum systems 
-and to construct quantum algorithms that rely on Hamiltonian dynamics. A Hamiltonian H(t) of a system is an operator that represents the total energy of a given quantum system. We also requre that 
-H(t) is Hermitian to ensure the energies are real valued numbers. The eigenvalue for a specific eigenstate of H(t) represent the energy of the state represented by the eigenstate. The ground state of a 
-Hamiltonian corresponds to the eigenstate with the smallest eigenvalue. This represents the state with the lowest energy level. Finding the ground state of a Hamiltonian is a particularly useful problem 
-used in many quantum applications (i.e. quantum verification, quantum algorithms, etc.) and is generally difficult for even quantum computer. "Simulating" a Hamiltonian can refer to finding the ground state
-of a Hamiltonian, but can also refer to describing a quantum system at a given time t. In quantum mechanics, a Hamiltonian can be used describe the time evolution of the wave function through the Schrodinger equation. Namely, we can describe a wave function, |&phi;(t)>, through the Schrodinger equation: 	 i\*&#8463;\*d/dt|&phi;(t)> = H(t)|&phi;(t)>. 
-where &#8463; is Planck's constant. Given the intial wave function at time t=0, we can solve this differential equation to find the wave function at any later time t. 
+TODO Maybe say something about Schrödinger's equation and its solution?
 
-Hamiltonians can be time independent, or time dependent. In this work, we will only consider time-independent Hamiltonians. For time independent hamiltonians, the solution of the Schrodinger equation is |&phi;(t)> = U(t)|&phi;(0)> where the unitary U(t) = e^{-iht/&#8463;}. 
-We can describe a Hamiltoninan H to be efficiently simulatable if for any t > 0, &epsilon; > 0, there exists a unitary U' that can be implimented using a polynomial number of gates such that ||U' - H(t) || < &epsilon;. In our work, we will formall prove 
-properites of Hamiltonians and their efficient simulation. 
+#Motivation
+One of the first proposed  potential applications of quantum computers was to use them to efficiently simulate quantum sytems. 
+Classically, tasks such as simulating molecular behavior or finding the ground state energy of large quantum sytems are 
+often computationally difficult. As a result, algorithms for simulating Hamiltonian dynamics have been a widely studied area
+of research. "add smt about verifying algs."  
+
+#Background
+Hamiltonian simulation methods are a widely studeid area and have been used to efficiently simulate physical quantum systems
+and used to construct quantum algorithms that rely on Hamiltonian dynamics. A Hamiltonian H(t) of a system is an operator that corresponds to the total energy of the quantum system it is being used to describe. 
+In quantum mechanics, a Hamiltonian can be used describe the time evolution of the wave function through the Schrodinger equation. 
+Namely, given wave function, |&phi>
 
 ## Relevant works
 
@@ -26,23 +32,8 @@ To the best of our knowledge, formal verification of Hamiltonian simulation sema
 
 ## Syntax
 
-The formal grammar is provided below. We will implement it using a similar strategy as how the `Imp` language from the Software Foundation textbook is defined and parsed.
-
-### Formal grammar
-
-* `A`: identifier
-* `z`: complex number
-* `r`: real number
-* `t`: positive real number.
-
-<pre><code>Type := <b>qubit</b> | <b>fock</b>
-Operator := Id | X | Y | Z | a | c
-Declaration := (T A)*
-Scalar := S_1 + S_2 | S_1 * S_2 | S_1 - S_2 | S_1 / S_2 | exp(S) | cos(S) | sin(S) | z | r
-TIH := M_1 + M_2 | M_1 * M_2 | S * M | A.O
-TIH_Sequence := (A : t, M)*
-Program := <b>Site</b> Declaration; <b>Hamiltonian</b> TIH_Sequence
-</code></pre>
+Hamiltonian evolutions can be specified using a simple domain-specific language.
+We first describe its syntax through an example, then we present its formal grammar.
 
 ### Example
 
@@ -60,16 +51,39 @@ Hamiltonian
     ( "H3" : R1 , "F1" > c )
 ```
 
-In the first *Site* section, four variables are declared. We have `F1` of type fock, as well as `Q1`, `Q2`, and `Q3` of type qubit.
-We then describe the desired evolution in the *Hamiltonian* section.
-Namely, we have three Hamiltonians, `H1`, `H2`, and `H3`, applied in that order for one unit of time each.
-
-The corresponding quantities are <!-- google charts LaTeX workaround; you hate to see it -->
+A program contains two sections: *Site* and *Hamiltonian*.
+In our *Site* section, variables are declared. In this example, we have `F1` of type fock, as well as `Q1`, `Q2`, and `Q3` of type qubit.
+In the *Hamiltonian* section, the desired physical evolution is specified.
+In our example, we have three Hamiltonians, <!-- google charts LaTeX workaround; you hate to see it -->
 * ![H1](http://chart.apis.google.com/chart?cht=tx&chl=H_1=\mathsf{I}{\otimes}\mathsf{X}{\otimes}\mathsf{Z}{\otimes}\mathsf{I}%2B\mathsf{I}{\otimes}\mathsf{I}{\otimes}\mathsf{I}{\otimes}\mathsf{Y})
 * ![H2](http://chart.apis.google.com/chart?cht=tx&chl=H_2=\mathsf{I}{\otimes}\mathsf{I}{\otimes}\mathsf{Y}{\otimes}\mathsf{I})
 * ![H3](http://chart.apis.google.com/chart?cht=tx&chl=H_3=c{\otimes}\mathsf{I}{\otimes}\mathsf{I}{\otimes}\mathsf{I})
 
+which are applied for one unit of time each.
+
+### Formal grammar
+
+* `A`: identifier
+* `z`: complex number
+* `r`: real number
+* `t`: positive real number
+
+```
+Type := "qubit" | "fock"
+Operator := Id | X | Y | Z | a | c
+Declaration := (T A)*
+Scalar := S_1 + S_2 | S_1 * S_2 | S_1 - S_2 | S_1 / S_2 | exp(S) | cos(S) | sin(S) | z | r
+TIH := M_1 + M_2 | M_1 * M_2 | S * M | A.O
+TIH_Sequence := (A : t, M)*
+Program := "Site" Declaration; "Hamiltonian" TIH_Sequence
+```
+
+TIH stands for time-independent Hamiltonian.
+
 ## Project Goals
+
+First, we will implement the formal syntax, following how `Imp` is parsed in the [Software Foundations textbook](https://softwarefoundations.cis.upenn.edu/plf-current/index.html).
+We then either prove some facts on Hamiltonian evolution semantics, or implement compilation to quantum circuits. Both if time permits.
 
 ### Semantics
 
@@ -83,7 +97,7 @@ One challenge will be representing matrix exponentials. We plan to define this s
 Another goal of this project is to implement and prove facts about Hamiltonian compilation. Given some universal gate set `G` and a Hamiltonian `H`, this involves constructing a program `P : list G` such that `P` and `H` have the same effect on a quantum state.
 If time permits, we may attempt to compile the Hamiltonian into a popular quantum programming language such as [OpenQASM](https://github.com/Qiskit/openqasm),
 so that it can be run on a simulator or a real quantum computer.
-This simply involves printing out the list of gates in the right syntax and [has been done](https://github.com/inQWIRE/SQIR/tree/main/examples/shor) for Shor's algorithm for factoring integers.
+This involves printing out the list of gates in the right syntax and [has been done](https://github.com/inQWIRE/SQIR/tree/main/examples/shor) for Shor's algorithm for integer factorization.
 <!-- Ethan: How about the correctness of compilation? Has the formal semantics of qasm been defined anywhere? -->
 
 The method of compilation will be via *trotterization*. Trotterization decomposes the unitary induced by a Hamiltonian into a product of local terms. 
