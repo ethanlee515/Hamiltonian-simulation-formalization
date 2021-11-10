@@ -59,10 +59,10 @@ In the first *Site* section, four variables are declared. We have `F1` of type f
 We then describe the desired evolution in the *Hamiltonian* section.
 Namely, we have three Hamiltonians, `H1`, `H2`, and `H3`, applied in that order for one unit of time each.
 
-The corresponding quantities are... TODO learn how to work with MathML?
-```
-H1 = X ot Z ot I + I ot I ot Y...
-```
+The corresponding quantities are <!-- google charts LaTeX workaround; you hate to see it -->
+* ![H1](http://chart.apis.google.com/chart?cht=tx&chl=H_1=\mathsf{I}{\otimes}\mathsf{X}{\otimes}\mathsf{Z}{\otimes}\mathsf{I}%2B\mathsf{I}{\otimes}\mathsf{I}{\otimes}\mathsf{I}{\otimes}\mathsf{Y})
+* ![H2](http://chart.apis.google.com/chart?cht=tx&chl=H_2=\mathsf{I}{\otimes}\mathsf{I}{\otimes}\mathsf{Y}{\otimes}\mathsf{I})
+* ![H3](http://chart.apis.google.com/chart?cht=tx&chl=H_3=c{\otimes}\mathsf{I}{\otimes}\mathsf{I}{\otimes}\mathsf{I})
 
 ## Semantics
 
