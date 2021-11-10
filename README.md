@@ -13,24 +13,28 @@ In alphabetical order by last name:
 
 Hamiltonian simulation methods are a widely studied area and have been used to efficiently simulate physical quantum systems 
 and to construct quantum algorithms that rely on Hamiltonian dynamics. A Hamiltonian H(t) of a system is an operator that represents the total energy of a given quantum system. We also require that 
-H(t) is Hermitian to ensure the energies are real valued. The eigenvalue for a specific eigenstate of H(t) represent the energy of the state represented by the eigenstate. The ground state of a 
+H(t) is Hermitian to ensure the energies are real valued. The eigenvalue for a specific eigenstate of H(t) represent the energy of the state represented by the eigenstate.
+<!-- The ground state of a 
 Hamiltonian corresponds to the eigenstate with the smallest eigenvalue. This represents the state with the lowest energy level. Finding the ground state of a Hamiltonian is a particularly useful problem 
 used in many quantum applications (i.e. quantum verification, quantum algorithms, etc.) and is generally difficult for even quantum computer. "Simulating" a Hamiltonian can refer to finding the ground state
-of a Hamiltonian, but can also refer to describing a quantum system at a given time t. In quantum mechanics, a Hamiltonian can be used describe the time evolution of the wave function through the Schrodinger equation. Namely, we can describe a wave function,
-![phi-t](http://chart.apis.google.com/chart?cht=tx&chl={\quad}|\phi(t)\rangle{\quad})
-through the Schrodinger equation:
+of a Hamiltonian, but can also refer to describing a quantum system at a given time t. -->
+
+While the term *Hamiltonian simulation* can refer to different tasks,
+in this project we are mainly interested in describing the time-evolution of a given physical system,
+which also is determined by its Hamiltonian through Schrödinger's equation.
+Namely, for a quantum state
+![phi-t](http://chart.apis.google.com/chart?cht=tx&chl={\quad}|\phi(t)\rangle{\quad}),
+we have
 ![schrodinger-eq](http://chart.apis.google.com/chart?cht=tx&chl={\quad}i\hbar|\phi'(t)\rangle=H(t)|\phi(t)\rangle{\quad}), 
-where ![hbar](http://chart.apis.google.com/chart?cht=tx&chl=\hbar) is Planck's constant. Given the intial wave function at time
+where ![hbar](http://chart.apis.google.com/chart?cht=tx&chl=\hbar) is Planck's constant. Given the initial condition at time
 ![teq0](http://chart.apis.google.com/chart?cht=tx&chl={\quad}t=0{\quad}),
-we can solve this differential equation to find the wave function at any later time t. 
+we can solve this differential equation to find the quantum state at any later time t. 
 
 Hamiltonians can be time independent, or time dependent. In this work, we will only consider time-independent Hamiltonians. For time independent hamiltonians, the solution of the Schrodinger equation is
-![sol-ti](http://chart.apis.google.com/chart?cht=tx&chl={\quad}|\phi(t)\rangle=U(t)|\phi(t)\rangle{\quad})
-where the unitary
-![sol-U](http://chart.apis.google.com/chart?cht=tx&chl={\quad}e^{-iHt/\hbar}{\quad}). 
+![sol-ti](http://chart.apis.google.com/chart?cht=tx&chl={\quad}|\phi(t)\rangle=e^{-iHt/\hbar}|\phi(0)\rangle{\quad}). 
 A Hamiltonian H is efficiently simulatable if for any t > 0, &epsilon; > 0, there exists a polynomial-sized quantum circuit C such that
-![sol-circuit](http://chart.apis.google.com/chart?cht=tx&chl={\quad}\mid|C-H(t)\mid|<\varepsilon{\quad}). In our work, we will formall prove 
-properites of Hamiltonians and their efficient simulation. 
+![sol-circuit](http://chart.apis.google.com/chart?cht=tx&chl={\quad}\mid|C-H(t)\mid|<\varepsilon{\quad}). In our work, we will formally prove 
+properites of Hamiltonians and their efficient simulations. 
 
 ## Relevant works
 
