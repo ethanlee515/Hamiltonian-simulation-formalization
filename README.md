@@ -15,7 +15,7 @@ of a Hamiltonian, but can also refer to describing a quantum system at a given t
 where &#8463; is Planck's constant. Given the intial wave function at time t=0, we can solve this differential equation to find the wave function at any later time t. 
 
 Hamiltonians can be time independent, or time dependent. In this work, we will only consider time-independent Hamiltonians. For time independent hamiltonians, the solution of the Schrodinger equation is |&phi;(t)> = U(t)|&phi;(0)> where the unitary U(t) = e^{-iht/&#8463;}. 
-We can describe a Hamiltoninan H to be efficiently simulatable if for ant t > 0, &epsilon; > 0, there exists a unitary U' such that ||U' - H(t) || < &epsilon;. In our work, we will formall prove 
+We can describe a Hamiltoninan H to be efficiently simulatable if for any t > 0, &epsilon; > 0, there exists a unitary U' that can be implimented using a polynomial number of gates such that ||U' - H(t) || < &epsilon;. In our work, we will formall prove 
 properites of Hamiltonians and their efficient simulation. 
 
 ## Relevant works
