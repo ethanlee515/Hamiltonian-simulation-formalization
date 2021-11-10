@@ -1,7 +1,5 @@
 # Hamiltonian Simulation Formulation
 
-This document is taken from the initial discussion notes and is really unpolished. Also, obviously work-in-progress.
-
 We will implement Hamiltonian simulation in Coq.
 
 We will implement the syntax. We then either prove some basic facts on its semantics, or implement compilation to quantum circuit. Or possibly both if time permits.
@@ -22,11 +20,9 @@ properites of Hamiltonians and their efficient simulation.
 
 ## Relevant works
 
-TODO describe [this library](https://rand.cs.uchicago.edu/vqc/) and maybe [SQIR/VOQC](https://github.com/inQWIRE/SQIR).
+Notable work on formally verified quantum computing using Coq has been done before, notably in [this library](https://rand.cs.uchicago.edu/vqc/) by Robert Rand, [SQIR/VOQC](https://github.com/inQWIRE/SQIR), and [QWIRE](https://github.com/inQWIRE/QWIRE). The first library implements the basics of quantum computation including qubits, measurements, and small quantum circuits and the latter three libraries implement many more advanced features. We expect `matrix.v` in QWIRE to be especially helpful as it proves many linear algebra fundamentals.
 
-TODO What exactly has been done before, and how are we adding onto existing work?
-
-I think Dr. Wu said something about 2x2 matrices were currently brute forced? What did he mean by that? Does that matter to us?
+To the best of our knowledge, formal verification of Hamiltonian simulation semantics is new. Our main contribution will be to prove theorems on the semantics of both commuting and non-commuting Hamiltonians, which will involve formulating a Coq representaion of the exponentiation of a matrix.
 
 ## Syntax
 
@@ -62,31 +58,33 @@ Hamiltonian
     ( "H1" : R1 , "Q1" > X * "Q2" > Z + "Q3" > Y )
     ( "H2" : R1 , "Q2" > Y )
     ( "H3" : R1 , "F1" > c )
-)
 ```
 
 In the first *Site* section, four variables are declared. We have `F1` of type fock, as well as `Q1`, `Q2`, and `Q3` of type qubit.
 We then describe the desired evolution in the *Hamiltonian* section.
 Namely, we have three Hamiltonians, `H1`, `H2`, and `H3`, applied in that order for one unit of time each.
 
-The corresponding quantities are... TODO learn how to work with MathML?
-```
-H1 = X ot Z ot I + I ot I ot Y...
-```
+The corresponding quantities are <!-- google charts LaTeX workaround; you hate to see it -->
+* ![H1](http://chart.apis.google.com/chart?cht=tx&chl=H_1=\mathsf{I}{\otimes}\mathsf{X}{\otimes}\mathsf{Z}{\otimes}\mathsf{I}%2B\mathsf{I}{\otimes}\mathsf{I}{\otimes}\mathsf{I}{\otimes}\mathsf{Y})
+* ![H2](http://chart.apis.google.com/chart?cht=tx&chl=H_2=\mathsf{I}{\otimes}\mathsf{I}{\otimes}\mathsf{Y}{\otimes}\mathsf{I})
+* ![H3](http://chart.apis.google.com/chart?cht=tx&chl=H_3=c{\otimes}\mathsf{I}{\otimes}\mathsf{I}{\otimes}\mathsf{I})
 
-## Semantics
+## Project Goals
 
-Goal: Be able to prove when different Hamiltonians have the same semantics.
-For example, if `H_1` and `H_2` commute, then `(H_1: t_1) (H_2, t_2)` and `(H_2: t_2) (H_1, t_1)` have the same semantics.
+### Semantics
 
-Challenge: matrix exponentials. Not even sure how to represent it.
-We were suggested to define it symbolically and state valid rewrite rules that respect Schrödinger's equation.
-Need to discuss the details though.
+We aim to prove when different Hamiltonians have the same semantics, that is, when they have the same effect on any given state.
+In particular, if `H_1` and `H_2` commute, then `(H_1: t_1) (H_2, t_2)` and `(H_2: t_2) (H_1, t_1)` have the same semantics.
 
-## Compilation
+One challenge will be representing matrix exponentials. We plan to define this symbolically (since the formal definition requires an infinite sum) and state valid rewrite rules that respect Schrödinger's equation.
 
-First write down the compiler using *trotterization* (TODO explain). We can then analyze its properties.
-For example, how much error it generates.
+### Compilation
 
-Here we can just assume the gate set to be whatever convenient for us.
-We can also assume the Hamiltonian is *local*.
+Another goal of this project is to implement and prove facts about Hamiltonian compilation. Given some universal gate set `G` and a Hamiltonian `H`, this involves constructing a program `P : list G` such that `P` and `H` have the same effect on a quantum state.
+If time permits, we may attempt to compile the Hamiltonian into a popular quantum programming language such as [OpenQASM](https://github.com/Qiskit/openqasm),
+so that it can be run on a simulator or a real quantum computer.
+This simply involves printing out the list of gates in the right syntax and [has been done](https://github.com/inQWIRE/SQIR/tree/main/examples/shor) for Shor's algorithm for factoring integers.
+<!-- Ethan: How about the correctness of compilation? Has the formal semantics of qasm been defined anywhere? -->
+
+The method of compilation will be via *trotterization*. Trotterization decomposes the unitary induced by a Hamiltonian into a product of local terms. 
+We can then analyze its properties by, for example, proving the error bound on trotterization for non-commuting Hamiltonians.
