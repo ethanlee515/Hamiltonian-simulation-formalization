@@ -2,8 +2,9 @@
 
 As our final project, we will formalize the *Hamiltonian simulation algorithm* in Coq.
 
-### Team (ordered alphabetically)
+### Team
 
+In alphabetical order by last name:
 * Connor Clayton
 * Yi (Ethan) Lee
 * Manasi Shingane
