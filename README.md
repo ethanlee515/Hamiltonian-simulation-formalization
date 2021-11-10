@@ -73,9 +73,10 @@ One challenge will be representing matrix exponentials. We plan to define this s
 ### Compilation
 
 Another goal of this project is to implement and prove facts about Hamiltonian compilation. Given some universal gate set `G` and a Hamiltonian `H`, this involves constructing a program `P : list G` such that `P` and `H` have the same effect on a quantum state.
+If time permits, we may attempt to compile the Hamiltonian into a popular quantum programming language such as [OpenQASM](https://github.com/Qiskit/openqasm),
+so that it can be run on a simulator or a real quantum computer.
+This simply involves printing out the list of gates in the right syntax and (has been done)[https://github.com/inQWIRE/SQIR/tree/main/examples/shor] for Shor's algorithm for factoring integers.
+<!-- Ethan: How about the correctness of compilation? Has the formal semantics of qasm been defined anywhere? -->
 
 The method of compilation will be via *trotterization*. Trotterization decomposes the unitary induced by a Hamiltonian into a product of local terms. 
 We can then analyze its properties by, for example, proving the error bound on trotterization for non-commuting Hamiltonians.
-
-If time permits, we may attempt to compile the Hamiltonian into a popular quantum programming language such as [OpenQASM](https://github.com/Qiskit/openqasm),
-so that it can be run on a simulator or a real quantum computer.
