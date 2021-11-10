@@ -50,7 +50,6 @@ Hamiltonian
     ( "H1" : R1 , "Q1" > X * "Q2" > Z + "Q3" > Y )
     ( "H2" : R1 , "Q2" > Y )
     ( "H3" : R1 , "F1" > c )
-)
 ```
 
 In the first *Site* section, four variables are declared. We have `F1` of type fock, as well as `Q1`, `Q2`, and `Q3` of type qubit.
