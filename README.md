@@ -2,10 +2,10 @@
 
 As our final project, we will formalize the *Hamiltonian simulation algorithm* in Coq.
 
-### Team
+### Team (ordered alphabetically)
 
-* Yi (Ethan) Lee
 * Connor Clayton
+* Yi (Ethan) Lee
 * Manasi Shingane
 
 ## What is Hamiltonian simulation?
