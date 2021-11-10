@@ -101,7 +101,7 @@ We then either prove some facts on Hamiltonian evolution semantics, or implement
 ### Semantics
 
 We aim to prove when different Hamiltonians have the same semantics, that is, when they have the same effect on any given state.
-In particular, if `H_1` and `H_2` commute, then `(H_1: t_1) (H_2, t_2)` and `(H_2: t_2) (H_1, t_1)` have the same semantics. 
+In particular, if `H_1` and `H_2` commute, then `(H_1: t_1) (H_2: t_2)` and `(H_2: t_2) (H_1: t_1)` have the same semantics. 
 
 One challenge will be representing matrix exponentials. We plan to define this symbolically (since the formal definition requires an infinite sum) and state valid rewrite rules that respect Schrödinger's equation.
 
