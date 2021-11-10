@@ -8,10 +8,6 @@ We will implement the syntax. We then either prove some basic facts on its seman
 
 ## What is Hamiltonian simulation?
 
-TODO Maybe say something about Schrödinger's equation and its solution?
-
-
-##Background
 Hamiltonian simulation methods are a widely studeid area and have been used to efficiently simulate physical quantum systems 
 and to construct quantum algorithms that rely on Hamiltonian dynamics. A Hamiltonian H(t) of a system is an operator that represents the total energy of a given quantum system. We also requre that 
 H(t) is Hermitian to ensure the energies are real valued numbers. The eigenvalue for a specific eigenstate of H(t) represent the energy of the state represented by the eigenstate. The ground state of a 
