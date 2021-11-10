@@ -14,7 +14,7 @@ used in many quantum applications (i.e. quantum verification, quantum algorithms
 of a Hamiltonian, but can also refer to describing a quantum system at a given time t. In quantum mechanics, a Hamiltonian can be used describe the time evolution of the wave function through the Schrodinger equation. Namely, we can describe a wave function, |&phi;(t)>, through the Schrodinger equation: 	 i\*&#8463;\*d/dt|&phi;(t)> = H(t)|&phi;(t)>. 
 where &#8463; is Planck's constant. Given the intial wave function at time t=0, we can solve this differential equation to find the wave function at any later time t. 
 
-Hamiltonians can be time independent, or time dependent. In this work, we will only consider time-independent Hamiltonians. For time independent hamiltonians, the solution of the Schrodinger equation is |&phi;(t)> = U(t)|&phi;(0)> where the unitary U(t) = e^{-iht/&#8463;}. 
+Hamiltonians can be time independent, or time dependent. In this work, we will only consider time-independent Hamiltonians. For time independent hamiltonians, the solution of the Schrodinger equation is |&phi;(t)> = U(t)|&phi;(0)> where the unitary U(t) = e^{-iHt/&#8463;}. 
 We can describe a Hamiltoninan H to be efficiently simulatable if for any t > 0, &epsilon; > 0, there exists a unitary U' that can be implimented using a polynomial number of gates such that ||U' - H(t) || < &epsilon;. In our work, we will formall prove 
 properites of Hamiltonians and their efficient simulation. 
 
@@ -74,7 +74,7 @@ The corresponding quantities are <!-- google charts LaTeX workaround; you hate t
 ### Semantics
 
 We aim to prove when different Hamiltonians have the same semantics, that is, when they have the same effect on any given state.
-In particular, if `H_1` and `H_2` commute, then `(H_1: t_1) (H_2, t_2)` and `(H_2: t_2) (H_1, t_1)` have the same semantics.
+In particular, if `H_1` and `H_2` commute, then `(H_1: t_1) (H_2, t_2)` and `(H_2: t_2) (H_1, t_1)` have the same semantics. 
 
 One challenge will be representing matrix exponentials. We plan to define this symbolically (since the formal definition requires an infinite sum) and state valid rewrite rules that respect Schrödinger's equation.
 
