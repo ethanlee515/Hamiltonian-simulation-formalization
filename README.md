@@ -12,10 +12,18 @@ TODO Maybe say something about Schrödinger's equation and its solution?
 
 
 ##Background
-Hamiltonian simulation methods are a widely studeid area and have been used to efficiently simulate physical quantum systems
-and to construct quantum algorithms that rely on Hamiltonian dynamics. A Hamiltonian H(t) of a system is an operator that corresponds to the total energy of the quantum system it is being used to describe. 
-In quantum mechanics, a Hamiltonian can be used describe the time evolution of the wave function through the Schrodinger equation. 
-Namely, given wave function, |&phi; >
+Hamiltonian simulation methods are a widely studeid area and have been used to efficiently simulate physical quantum systems 
+and to construct quantum algorithms that rely on Hamiltonian dynamics. A Hamiltonian H(t) of a system is an operator that represents the total energy of a given quantum system. We also requre that 
+H(t) is Hermitian to ensure the energies are real valued numbers. The eigenvalue for a specific eigenstate of H(t) represent the energy of the state represented by the eigenstate. The ground state of a 
+Hamiltonian corresponds to the eigenstate with the smallest eigenvalue. This represents the state with the lowest energy level. Finding the ground state of a Hamiltonian is a particularly useful problem 
+used in many quantum applications (i.e. quantum verification, quantum algorithms, etc.) and is generally difficult for even quantum computer. "Simulating" a Hamiltonian can refer to finding the ground state
+of a Hamiltonian, but can also refer to describing a quantum system at a given time t. In quantum mechanics, a Hamiltonian can be used describe the time evolution of the wave function through the Schrodinger equation. Namely, we can describe a wave function, |&phi;(t)>, through the Schrodinger equation: 	i&#8463; = d/dt|&phi;(t)> = H(t)|&phi(t)>. 
+where &#8463; is Planck's constant. Given the intial wave function at time t=0, we can solve this differential equation to find the wave function at any later time t. 
+
+Hamiltonians can be time independent, or time dependent. In this work, we will only consider time-independent Hamiltonians. For time independent hamiltonians, the solution of the Schrodinger equation is |&phi;(t)> = U(t)|&phi;(0)> where the unitary U(t) = e^{-iht/&#8463;}. 
+We can describe a Hamiltoninan H to be efficiently simulatable if for ant t > 0, &epsilon; > 0, there exists a unitary U' such that ||U' - H(t) || < &epsilon;. In our work, we will formall prove 
+properites of Hamiltonians and their efficient simulation. 
+
 ## Relevant works
 
 TODO describe [this library](https://rand.cs.uchicago.edu/vqc/) and maybe [SQIR/VOQC](https://github.com/inQWIRE/SQIR).
