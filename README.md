@@ -15,7 +15,7 @@ TODO Maybe say something about Schrödinger's equation and its solution?
 Hamiltonian simulation methods are a widely studeid area and have been used to efficiently simulate physical quantum systems
 and to construct quantum algorithms that rely on Hamiltonian dynamics. A Hamiltonian H(t) of a system is an operator that corresponds to the total energy of the quantum system it is being used to describe. 
 In quantum mechanics, a Hamiltonian can be used describe the time evolution of the wave function through the Schrodinger equation. 
-Namely, given wave function, |&phi >
+Namely, given wave function, |&phi; >
 ## Relevant works
 
 TODO describe [this library](https://rand.cs.uchicago.edu/vqc/) and maybe [SQIR/VOQC](https://github.com/inQWIRE/SQIR).
