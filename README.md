@@ -115,3 +115,40 @@ This involves printing out the list of gates in the right syntax and [has been d
 
 The method of compilation will be via *trotterization*. Trotterization decomposes the unitary induced by a Hamiltonian into a product of local terms. 
 We can then analyze its properties by, for example, proving the error bound on trotterization for non-commuting Hamiltonians.
+
+## Project Timeline
+
+### Week 1
+
+Survey available libraries to see exactly which auxillary lemmas we have, especially matrix.v from QWIRE. Write defninitions and theorem statements (which we will admit for now) for the following:
+
+* Define Hermitian property of a matrix (i.e. matrix is self-adjoint)
+* Define matrix diagonalization
+* Prove that Hermitian matrices are diagonalizable
+* Prove that Hermitian matrices have real eigenvalues
+* Define Tensor products and Kronecker products.
+* Prove that Hermitian matrices are closed under additions and Kronecker products
+* Define matrix exponentials
+* Non-Hermitian "Hamiltonians" should probably be rejected?
+* Define when two Hamiltonians have the same semantics
+* Prove Hamiltonian associativity
+* Prove that if Hamiltonians commute, swapping their order results in the same program
+* Define the compiler, which turns a Hamiltonian into a list of gates
+* Formulate the statement of the compiler error bound (i.e., O(m^2 T^2 ||Hi||^2 / N) ) in terms of the relevant quantities
+
+Some other work will be:
+* Fix a few bugs in the syntax parser (currently syntax.v)
+* Understand the proof of error bound for trotterization
+* Learn QASM and how to compile programs.
+
+### Week 2
+
+Once we have defined our problems, we will split up the work among the group. Then we will prove some of the theorems we stated in week 1. These will include all the basic theorems listed above, i.e., those about linear algebra operations. We will also begin the work on the main theorems.
+
+### Week 3
+
+In week 3, we will continue our work on the main theorems. The goal will be to prove most of our main results, or at least be close, by the end of the week. We will evaluate our progress heading into the final week and begin one or more additional problems if we have time.
+
+### Week 4
+
+The final week will be for finishing the work we have started in the previous weeks. We will finalize our work into a complete project and write the final report.
