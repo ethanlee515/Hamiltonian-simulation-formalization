@@ -1,0 +1,9 @@
+-R . HSF
+
+QWIRE/Prelim.v
+QWIRE/RealAux.v
+QWIRE/Complex.v
+QWIRE/Matrix.v
+QWIRE/Quantum.v
+
+src/Syntax.v

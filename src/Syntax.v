@@ -7,6 +7,7 @@ From Coq Require Import Lia.
 From Coq Require Import Lists.List. Import ListNotations.
 From Coq Require Import Strings.String.
 From Coq Require Import Reals.
+Require Export QWIRE.Matrix.
 
 Inductive HType := HQubit | HFock.
 Inductive HOp := Id | X | Y | Z | a | c.

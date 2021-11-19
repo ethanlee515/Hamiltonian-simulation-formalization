@@ -156,3 +156,6 @@ In week 3, we will continue our work on the main theorems. The goal will be to p
 ### Week 4
 
 The final week will be for finishing the work we have started in the previous weeks. We will finalize our work into a complete project and write the final report.
+
+## Notes
+Requires Coq version 8.10-8.13
