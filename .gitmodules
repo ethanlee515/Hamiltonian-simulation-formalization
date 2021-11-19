@@ -1,0 +1,3 @@
+[submodule "QWIRE"]
+	path = QWIRE
+	url = https://github.com/INQWIRE/QWIRE
