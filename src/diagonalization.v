@@ -1,6 +1,5 @@
 Require Import Reals.
 Require Import QWIRE.Matrix.
-Require Import Omega.
 
 Definition Herm {n: nat} (A : Square n) : Prop :=
   forall i j, (A i j) = Cconj (A j i).
@@ -22,7 +21,7 @@ Proof.
     contradiction.
 Qed.
 
-Lemma herm_diag_real {n : nat} (A : Square n) :
+Theorem herm_diag_real {n : nat} (A : Square n) :
   forall (i : nat) (x : C), Herm A -> (i < n)%nat -> A i i = x -> snd x = 0.
 Proof. intros. unfold Herm in H. unfold Cconj in H.
        remember (H i i) as H2.
@@ -36,8 +35,12 @@ Qed.
 Definition Diagonal {n : nat} (A : Square n) :=
   forall i j, i <> j ->  A i j = 0.
 
-Definition Diagonalization {n : nat} (M D T Tinv : Square n) : Prop :=
-  Minv T Tinv /\ M = Tinv × D × T.
+Definition Diagonalization {n : nat} (M Tinv D T : Square n) : Prop :=
+  Diagonal D /\ Minv T Tinv /\ M = Tinv × D × T.
+
+Definition Diagonalizable {n : nat} (A : Square n) :=
+  exists (Tinv D T : Square n),
+    Diagonalization A Tinv D T.
 
 (* element-wise exponentiation of a diagonal matrix *)
 Definition exp_diag {n : nat} (D : Square n) :=
@@ -45,7 +48,31 @@ Definition exp_diag {n : nat} (D : Square n) :=
 
 Definition exp_herm {n : nat} (M_exp M : Square n) : Prop :=
   exists (Tinv D T : Square n),
-    Diagonalization M D T Tinv /\ Diagonalization M_exp (exp_diag D) T Tinv.
+    Diagonalization M Tinv D T /\ Diagonalization M_exp Tinv (exp_diag D) T.
 
-(* technical debt *)
+(*
+Theorem exp_herm {n : nat} (M_exp M D T Tinv : Square n) :
+  Diagonalization M Tinv D T ->  
+  Diagonalization M_exp Tinv (exp_diag D) T.
+ *)
 
+(* Simultaneously diagonalizable *)
+Definition Sim_diag {n : nat} (A B : Square n) :=
+  exists (T Tinv M1 M2 : Square n),
+    Diagonalization M1 Tinv A T /\ Diagonalization M2 Tinv B T.
+
+Definition Mat_commute {n : nat} (A B : Square n) :=
+  A × B = B × A.
+
+Theorem Commute_sim_diag {n : nat} :
+  forall (A B TAinv TBinv DA DB TA TB : Square n),
+  Mat_commute A B ->
+  Diagonalization A TAinv DA TA ->
+  Diagonalization B TBinv DB TB ->
+  (*
+  Diagonalizable A ->
+  Diagonalizable B ->
+  *)
+  Sim_diag A B.
+Proof.
+  Admitted.
