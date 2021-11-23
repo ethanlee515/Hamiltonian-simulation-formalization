@@ -1,0 +1,5 @@
+compile
+compile_coq.ml
+*.mli
+*.cmi
+*.cmo
