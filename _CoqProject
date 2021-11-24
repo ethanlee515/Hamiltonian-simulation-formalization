@@ -6,4 +6,5 @@ QWIRE/Complex.v
 QWIRE/Matrix.v
 QWIRE/Quantum.v
 
-src/Syntax.v
+src/HSF_Syntax.v
+src/Compile.v
