@@ -2,11 +2,11 @@ Require Import Reals QWIRE.Matrix.
 Require Import Complex.
 
 (* Stolen and generalized from real case *)
-(* Print R_dist. *)
+ Print R_dist. 
 Definition C_dist c1 c2 :=
     Cmod (c1 - c2).
 
-(* Print sum_f_R0. *)
+Print sum_f_R0. 
 Fixpoint sum_f_C0 (f:nat -> C) (N:nat) : C :=
     match N with
         | O => f 0%nat

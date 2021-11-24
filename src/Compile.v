@@ -57,4 +57,4 @@ Definition compile (program_text : string) :=
         write_circuit circuit ++
         "measure_all\n".
 
-Extraction "../extracted/compile_coq.ml" compile.
+Extraction "extracted/compile_coq.ml" compile.
