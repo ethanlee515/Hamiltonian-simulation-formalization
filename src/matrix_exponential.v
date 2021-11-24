@@ -24,3 +24,12 @@ Definition infinite_sumC (s : nat -> C) (l : C) :=
 Definition matrix_exponential {n : nat} (M Mexp : Square n) :=
     forall i j,
         infinite_sumC (fun k => ((Mmult_n k M) i j) / (INR (fact k))) (Mexp i j).
+
+Require Import Rlimit.
+
+Print Metric_Space.
+
+(* TODO https://coq.github.io/doc/v8.9/stdlib/Coq.Reals.Rlimit.html *)
+
+Definition Mat_met (n : nat) : Metric_space :=
+    Build_Metric_Space 
