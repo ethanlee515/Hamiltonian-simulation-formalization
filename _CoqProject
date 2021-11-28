@@ -8,3 +8,6 @@ QWIRE/Quantum.v
 
 src/HSF_Syntax.v
 src/Compile.v
+src/Matrix_exponential.v
+src/Diagonalization.v
+src/Semantics.v

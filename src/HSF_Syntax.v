@@ -31,7 +31,8 @@ Inductive TIH :=
     | HMult (h1 h2 : TIH)
     | HMultS (s : HScalar) (h: TIH)
     | HIdOp (id: string) (op: HOp).
-Definition TIH_Seq := list (string * R * TIH).
+Definition TIH_Term := (string * R * TIH)%type.
+Definition TIH_Seq := list TIH_Term.
 Definition H_Program := (HDecls * TIH_Seq)%type.
 
 Class Ham_Quantity_Add (Q : Type) :=

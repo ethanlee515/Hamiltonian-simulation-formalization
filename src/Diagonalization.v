@@ -52,14 +52,14 @@ Proof.
   intros. intros H1.
   destruct (Rlt_dec x 0).
   - assert (H2 : Ropp x > 0). {
-      apply Ropp_gt_lt_0_contravar in r. assumption. }.
+      apply Ropp_gt_lt_0_contravar in r. assumption. }
     rewrite <- H1 in H2.
     apply Rlt_le in r. apply Rle_not_gt in r. contradiction.
   - apply Rnot_lt_ge in n. apply Rge_le in n.
     assert (H2 : 0 >= Ropp x). {
-      apply Ropp_0_le_ge_contravar in n. assumption. }.
+      apply Ropp_0_le_ge_contravar in n. assumption. }
     assert (H3 : 0 < x). {
-      inversion n. assumption. symmetry in H0. contradiction. }.
+      inversion n. assumption. symmetry in H0. contradiction. }
     rewrite <- H1 in H2. apply Rge_not_lt in H2.
     contradiction.
 Qed.

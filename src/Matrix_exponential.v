@@ -31,5 +31,7 @@ Print Metric_Space.
 
 (* TODO https://coq.github.io/doc/v8.9/stdlib/Coq.Reals.Rlimit.html *)
 
+(*
 Definition Mat_met (n : nat) : Metric_space :=
     Build_Metric_Space 
+*)
