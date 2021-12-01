@@ -28,7 +28,7 @@ Inductive TIH :=
     | HMultS (s : HScalar) (h: TIH)
     | HPauli (id: string) (op: HOp).
 
-Record HSF_Term := makeTIH_Term
+Record HSF_Term := makeHSF_Term
 {
     TermId : string;
     Duration : HScalar;
