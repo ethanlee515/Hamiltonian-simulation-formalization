@@ -24,7 +24,7 @@ Inductive HScalar :=
 Inductive TIH :=
     | HAdd (h1 h2 : TIH)
     | HMult (h1 h2 : TIH)
-    | HMultS (s : HScalar) (h: TIH)
+    | HScale (s : HScalar) (h: TIH)
     | HPauli (id: string) (p: Pauli).
 
 Record HSF_Term := makeHSF_Term

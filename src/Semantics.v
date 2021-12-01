@@ -31,9 +31,6 @@ Fixpoint find_qubit (decls : list string) (label : string) : nat :=
     | head :: tail => if String.eqb head label then 0 else 1 + find_qubit tail label
     end.
 
-
-Print TIH.
-
 Fixpoint interpret_TIH (decls : list string) (term : TIH) : option (Square (2 ^ (List.length decls))%nat) :=
     let dim := ((2 ^ (List.length decls)))%nat in
     match term with
@@ -47,7 +44,7 @@ Fixpoint interpret_TIH (decls : list string) (term : TIH) : option (Square (2 ^ 
         | (Some m1, Some m2) => Some (Mmult m1 m2)
         | _ => None
         end
-    | HMultS sc H =>
+    | HScale sc H =>
         match interpret_TIH decls H with
         | Some m => Some (scale (sem_HScalar sc) m)
         | None => None
@@ -71,11 +68,6 @@ Definition sem_term {n : nat} (P : H_Program) (T : HSF_Term) (S : Square n) : Pr
     let dt := sem_HScalar T.(Duration) in
     dims P = n /\ matrix_exponential (scale (-Ci * dt) H) S (* e^{-iHt} =? S *)
 .
-
-(* Prop for if label l is used in the declarations D *)
-
-Print H_Program.
-Print HSF_Term.
 
 (* Inductive definition for valid programs *)
 (* Is the empty program valid? *)
