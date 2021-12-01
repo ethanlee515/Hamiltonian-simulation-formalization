@@ -13,3 +13,4 @@ src/Diagonalization.v
 src/Semantics.v
 src/PauliRotations.v
 src/Qasm.v
+src/Trotterize.v
