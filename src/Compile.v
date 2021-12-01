@@ -3,6 +3,7 @@ Require Import Reals.
 Require Import List.
 Require Import HSF_Syntax.
 Require Import DecimalString.
+Require Import Qasm.
 
 Open Scope list_scope.
 Open Scope string_scope.
@@ -22,39 +23,18 @@ Hamiltonian
 
 Definition parseProgram (program_text : string) : H_Program := program_placeholder.
 
-Inductive SupportedGates :=
-  | Rx (loc : nat) (theta : R)
-  | Ry (loc : nat) (theta : R)
-  | Rz (loc : nat) (theta : R).
-
 (* TODO Implement this *)
 (* Right now it maps everything to a fixed circuit *)
-Definition trotterize (program : H_Program) := [(Rx 0 R1); (Ry 0 R1); (Rz 0 R1)].
-
-Definition string_of_nat (n : nat) := NilZero.string_of_int (Nat.to_int n).
-
-Fixpoint write_circuit (circuit : list SupportedGates) :=
-    match circuit with
-    | [] => ""
-    | head :: tail =>
-        (match head with
-        | Rx loc theta => "U(1, 0, 0) q[" ++ string_of_nat loc ++ "]\n"
-        | Ry loc theta => "U(1, 0, 0) q[" ++ string_of_nat loc ++ "]\n"
-        | Rz loc theta => "U(1, 0, 0) q[" ++ string_of_nat loc ++ "]\n"
-        end) ++ (write_circuit tail)
-    end.
-
-(* TODO *)
-Definition count_sites (program : H_Program) : nat := 3.
-
-Definition string_of_real (r : R) := (* TODO I don't even know... *) "0.5".
+Definition trotterize (program : H_Program) : QasmProgram := makeQasmProg 3
+[
+    QasmTerm1 (Rx 1) 0 ;
+    QasmTerm1 (Ry 1) 2 ;
+    QasmTerm2 (Rzz 1) 0 1
+].
 
 Definition compile (program_text : string) :=
     let program := parseProgram program_text in
-    let circuit := trotterize program in
-        "OPENQASM 2.0;\n" ++
-        "qreg q[" ++ string_of_nat (count_sites program) ++ "]\n" ++
-        write_circuit circuit ++
-        "measure_all\n".
+    let qasm := trotterize program in
+    print_qasm_program qasm.
 
 Extraction "extracted/compile_coq.ml" compile.

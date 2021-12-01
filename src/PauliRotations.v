@@ -8,21 +8,21 @@ Inductive Pauli :=
     | Pauli_Y
     | Pauli_Z.
 
-Definition XGate (i j : nat) :=
+Definition XGate : Square 2 := fun (i j : nat) =>
     match (i, j) with
     | (0, 1) => RtoC 1
     | (1, 0) => RtoC 1
     | _ => RtoC 0
     end.
 
-Definition YGate (i j : nat) :=
+Definition YGate : Square 2 := fun (i j : nat) =>
     match (i, j) with
     | (0, 1) => Ci
     | (1, 0) => -Ci
     | _ => RtoC 0
     end.
 
-Definition ZGate (i j : nat) :=
+Definition ZGate : Square 2 := fun (i j : nat) =>
     match (i, j) with
     | (1, 0) => RtoC 1
     | (0, 1) => RtoC (-1)
@@ -37,49 +37,54 @@ Definition PauliToMatrix (p : Pauli) : Square 2 :=
     | Pauli_Z => ZGate
     end.
 
-Definition makeSingleQubitRotation (theta : R) (p : Pauli) : Square 2 :=
-    (* TODO *)
-    I 2.
+Definition RZGate (t : R) : Square 2 := fun i j =>
+    match (i, j) with
+    | (1, 0) => exp t
+    | (0, 1) => exp (-t)
+    | _ => RtoC 0
+    end.
 
-Lemma SingleQubitRotation_Correct :
-    forall (theta : R) (p : Pauli),
-        matrix_exponential (scale theta (PauliToMatrix p)) (makeSingleQubitRotation theta p).
+Lemma RZGate_Correct :
+    forall (theta : R),
+        matrix_exponential ((scale theta ZGate)) (RZGate theta).
 Proof.
     Admitted.
 
-Definition makeTwoQubitRotation (theta : R) (p1 p2 : Pauli) : Square 4 :=
-    (* TODO Write as a product of QASM-supported operations so this helps with Trotterization *)
-    I 4.
+Definition RXGate (t : R) : Square 2 :=
+    (* TODO *) I 2.
 
-Lemma TwoQubitRotation_Correct :
-    forall (theta : R) (p1 p2 : Pauli),
-        let p1gate := PauliToMatrix p1 in
-        let p2gate := PauliToMatrix p2 in
-        let p1p2 := kron p1gate p2gate in
-        matrix_exponential (scale theta p1p2) (makeTwoQubitRotation theta p1 p2).
+Lemma RXGate_Correct :
+    forall (theta : R),
+        matrix_exponential ((scale theta XGate)) (RXGate theta).
 Proof.
     Admitted.
+
+Definition RYGate (t : R) : Square 2 :=
+    (* TODO *) I 2.
+Lemma RYGate_Correct :
+    forall (theta : R),
+        matrix_exponential ((scale theta YGate)) (RYGate theta).
+Proof.
+    Admitted.
+
+Definition RXXGate (t : R) : Square 4 :=
+    (* TODO *) fun (i j : nat) => 0.
+
+(* TODO correctness lemma..... *)
+
+Definition RXYGate (t : R) : Square 4 :=
+    (* TODO *) fun (i j : nat) => 0.
+
+Definition RXZGate (t : R) : Square 4 :=
+    (* TODO *) fun (i j : nat) => 0.
+
+Definition RYYGate (t : R) : Square 4 :=
+    (* TODO *) fun (i j : nat) => 0.
+
+Definition RYZGate (t : R) : Square 4 :=
+    (* TODO *) fun (i j : nat) => 0.
+
+Definition RZZGate (t : R) : Square 4 :=
+    (* TODO *) fun (i j : nat) => 0.
 
 (* Three qubits rotation is nice to have but not top priority *)
-
-(* The following should probably be moved to a different file *)
-
-Inductive QasmOp :=
-    | QasmPauli (P : Pauli)
-    | QasmU (theta phi : R).
-
-Record QasmTerm := makeQasmTerm {
-    operation : QasmOp;
-    location : nat;
-}.
-
-Record QasmProgram := makeQasmProg {
-    num_qubits : nat;
-    circuit : list QasmTerm;
-}.
-
-Definition interpretQasm (prog : QasmProgram) :=
-    (* TODO *) I (prog.(num_qubits)).
-
-
-        

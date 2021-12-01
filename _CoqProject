@@ -12,3 +12,4 @@ src/Matrix_exponential.v
 src/Diagonalization.v
 src/Semantics.v
 src/PauliRotations.v
+src/Qasm.v
