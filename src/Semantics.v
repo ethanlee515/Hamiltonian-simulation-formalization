@@ -10,20 +10,25 @@ Open Scope list_scope.
      -----  Definitions  -----
  *)
 
-Definition sem_HScalar (sc : HScalar) : R := (* TODO *) R1.
+Print HScalar.
+
+Fixpoint sem_HScalar (sc : HScalar) : R :=
+    match sc with
+    | HScAdd s1 s2 => (sem_HScalar s1) + (sem_HScalar s2)
+    | HScMult s1 s2 => (sem_HScalar s1) * (sem_HScalar s2)
+    | HScSub s1 s2 => (sem_HScalar s1) - (sem_HScalar s2)
+    | HScDiv s1 s2 => (sem_HScalar s1) / (sem_HScalar s2)
+    | HScExp s => exp (sem_HScalar s)
+    | HScCos s => cos (sem_HScalar s)
+    | HScSin s => sin (sem_HScalar s)
+    | HScReal v s => v
+    end.
 
 (* TODO Rewrite H_Program as record? *)
 Definition count_sites (prog : H_Program) := List.length (prog.(Decls)).
 
 (* this works for qubits, not sure about fock spaces... *)
 Definition dims (P : H_Program) : nat := 2 ^ (count_sites P).
-
-Definition locate_term (prog : H_Program) (term_id : string) : option HSF_Term :=
-    (* TODO *)
-    match prog.(Terms) with
-    | head :: tail => Some head
-    | [] => None
-    end.
 
 Fixpoint find_qubit (decls : list string) (label : string) : nat :=
     match decls with
