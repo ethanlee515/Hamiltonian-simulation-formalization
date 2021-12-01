@@ -7,21 +7,10 @@ Require Import Qasm.
 
 Open Scope list_scope.
 Open Scope string_scope.
-Open Scope ham_scope.
 
 Import ListNotations.
 
-Definition program_placeholder := Site
-    fock "F1"    
-    qubit "Q1"
-    qubit "Q2"
-    qubit "Q3" ;
-Hamiltonian
-    ( "H1" : R1 , "Q1" > X * "Q2" > Z + "Q3" > Y )
-    ( "H2" : R1 , "Q2" > Y )
-    ( "H3" : R1 , "F1" > c ).
-
-Definition parseProgram (program_text : string) : H_Program := program_placeholder.
+Definition parseProgram (program_text : string) : H_Program := makeHProg [] [].
 
 (* TODO Implement this *)
 (* Right now it maps everything to a fixed circuit *)
