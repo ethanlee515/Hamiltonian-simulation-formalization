@@ -10,8 +10,6 @@ Open Scope list_scope.
      -----  Definitions  -----
  *)
 
-Print HScalar.
-
 Fixpoint sem_HScalar (sc : HScalar) : R :=
     match sc with
     | HScAdd s1 s2 => (sem_HScalar s1) + (sem_HScalar s2)
