@@ -1,5 +1,5 @@
 Require Import HSF_Syntax.
-Require Import Matrix_exponential.
+Require Import MatrixExponential.
 Require Import Diagonalization.
 Require Import String.
 Require Import PauliRotations.

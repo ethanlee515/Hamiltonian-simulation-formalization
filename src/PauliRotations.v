@@ -1,6 +1,6 @@
 Require Import Complex.
 Require Import QWIRE.Matrix.
-Require Import Matrix_exponential.
+Require Import MatrixExponential.
 
 Inductive Pauli :=
     | Pauli_I
