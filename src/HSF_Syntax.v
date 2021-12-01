@@ -7,9 +7,8 @@ From Coq Require Import Lia.
 From Coq Require Import Lists.List. Import ListNotations.
 From Coq Require Import Strings.String.
 From Coq Require Import Reals.
+Require Import PauliRotations.
 Require Export QWIRE.Matrix.
-
-Inductive HOp := HI | HX | HY | HZ.
 
 Inductive HScalar :=
     | HScAdd (s1 s2 : HScalar)
@@ -26,7 +25,7 @@ Inductive TIH :=
     | HAdd (h1 h2 : TIH)
     | HMult (h1 h2 : TIH)
     | HMultS (s : HScalar) (h: TIH)
-    | HPauli (id: string) (op: HOp).
+    | HPauli (id: string) (p: Pauli).
 
 Record HSF_Term := makeHSF_Term
 {

@@ -2,6 +2,9 @@ Require Import HSF_Syntax.
 Require Import Matrix_exponential.
 Require Import Diagonalization.
 Require Import String.
+Require Import PauliRotations.
+Open Scope matrix_scope.
+Open Scope list_scope.
 
 (*
      -----  Definitions  -----
@@ -20,6 +23,42 @@ Definition locate_term (prog : H_Program) (term_id : string) : option HSF_Term :
     match prog.(Terms) with
     | head :: tail => Some head
     | [] => None
+    end.
+
+Fixpoint find_qubit (decls : list string) (label : string) : nat :=
+    match decls with
+    | [] => 0
+    | head :: tail => if String.eqb head label then 0 else 1 + find_qubit tail label
+    end.
+
+
+Print TIH.
+
+Fixpoint interpret_TIH (decls : list string) (term : TIH) : option (Square (2 ^ (List.length decls))%nat) :=
+    let dim := ((2 ^ (List.length decls)))%nat in
+    match term with
+    | HAdd H1 H2 =>
+        match (interpret_TIH decls H1, interpret_TIH decls H2) with
+        | (Some m1, Some m2) => Some (Mplus m1 m2)
+        | _ => None
+        end
+    | HMult H1 H2 =>
+        match (interpret_TIH decls H1, interpret_TIH decls H2) with
+        | (Some m1, Some m2) => Some (Mmult m1 m2)
+        | _ => None
+        end
+    | HMultS sc H =>
+        match interpret_TIH decls H with
+        | Some m => Some (scale (sem_HScalar sc) m)
+        | None => None
+        end
+    | HPauli label p =>
+        let num_qubits := List.length decls in
+        let loc := find_qubit decls label in
+        if loc <? List.length decls then
+            Some (kron (kron (I (2 ^ loc)) (PauliToMatrix p)) (I (2 ^ (num_qubits - loc - 1))))
+        else
+            None
     end.
 
 (* Convert a TIH term into a Hamiltonian operator (an n x n matrix) *)
