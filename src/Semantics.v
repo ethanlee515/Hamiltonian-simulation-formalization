@@ -34,43 +34,60 @@ Fixpoint find_qubit (decls : list string) (label : string) : nat :=
     | head :: tail => if String.eqb head label then 0 else 1 + find_qubit tail label
     end.
 
-Fixpoint interpret_TIH (decls : list string) (term : TIH) : option (Square (2 ^ (List.length decls))%nat) :=
-    let dim := ((2 ^ (List.length decls)))%nat in
-    match term with
-    | HAdd H1 H2 =>
-        match (interpret_TIH decls H1, interpret_TIH decls H2) with
-        | (Some m1, Some m2) => Some (Mplus m1 m2)
-        | _ => None
-        end
-    | HMult H1 H2 =>
-        match (interpret_TIH decls H1, interpret_TIH decls H2) with
-        | (Some m1, Some m2) => Some (Mmult m1 m2)
-        | _ => None
-        end
-    | HScale sc H =>
-        match interpret_TIH decls H with
-        | Some m => Some (scale (sem_HScalar sc) m)
-        | None => None
-        end
-    | HPauli label p =>
+
+Fixpoint interpret_HPauli (decls : list string) (p : HPauli)
+        : option (Square (2 ^ (List.length decls))%nat) :=
+    match p with HIdOp label pauli =>
         let num_qubits := List.length decls in
         let loc := find_qubit decls label in
         if loc <? List.length decls then
-            Some (kron (kron (I (2 ^ loc)) (PauliToMatrix p)) (I (2 ^ (num_qubits - loc - 1))))
+            Some (kron (kron (I (2 ^ loc)) (PauliToMatrix pauli)) (I (2 ^ (num_qubits - loc - 1))))
         else
             None
     end.
 
+Fixpoint interpret_HPaulis (decls : list string) (ps : list HPauli)
+        : option (Square (2 ^ (List.length decls))%nat) :=
+    match ps with
+    | head :: tail =>
+        match (interpret_HPauli decls head, interpret_HPaulis decls tail) with
+        | (Some m1, Some m2) => Some (Mmult m1 m2)
+        | _ => None
+        end
+    | [] => Some (I (2 ^ (List.length decls))%nat)
+    end.
+        
+Fixpoint interpret_Summand (decls : list string) (s : Summand)
+        : option (Square (2 ^ (List.length decls))%nat) :=
+    let sc_v := sem_HScalar s.(hScale) in
+    match interpret_HPaulis decls s.(hPaulis) with
+    | Some pauli_v => Some (scale sc_v pauli_v)
+    | None => None
+    end.
+
+Fixpoint interpret_Summands (decls : list string) (ss : list Summand)
+        : option (Square (2 ^ (List.length decls))%nat) :=
+    match ss with
+    | head :: tail =>
+        match (interpret_Summand decls head, interpret_Summands decls tail) with
+        | (Some m1, Some m2) => Some (Mplus m1 m2)
+        | _ => None
+        end
+    | [] => Some Zero
+    end.
+
 (* Convert a TIH term into a Hamiltonian operator (an n x n matrix) *)
-Definition interpret_term (prog : H_Program) (term : HSF_Term) : Square (dims prog) :=
-    (* TODO *) I (dims prog).
+Definition interpret_term (prog : H_Program) (term : HSF_Term) : option (Square (dims prog)) :=
+    interpret_Summands prog.(Decls) term.(Hamiltonian).
 
 (* Relational definition of Hamiltonian semantics *)
 Definition sem_term {n : nat} (P : H_Program) (T : HSF_Term) (S : Square n) : Prop :=
-    let H := interpret_term P T in
-    let dt := sem_HScalar T.(Duration) in
-    dims P = n /\ matrix_exponential (scale (-Ci * dt) H) S (* e^{-iHt} =? S *)
-.
+    match interpret_term P T with
+    | Some H =>
+        let dt := sem_HScalar T.(Duration) in
+        dims P = n /\ matrix_exponential (scale (-Ci * dt) H) S (* e^{-iHt} =? S *)
+    | None => False
+    end.
 
 (* Inductive definition for valid programs *)
 (* Is the empty program valid? *)
@@ -103,9 +120,10 @@ Inductive sem_program (n : nat) : H_Program -> Square n -> Prop :=
 .
 
 Definition ham_commute (P : H_Program) (T1 T2 : HSF_Term) : Prop :=
-  let H1 := interpret_term P T1 in
-  let H2 := interpret_term P T2 in
-  Mat_commute H1 H2.
+    match (interpret_term P T1, interpret_term P T2) with
+    | (Some H1, Some H2) => Mat_commute H1 H2
+    | _ => False
+    end.
 
 (*
      -----  Theorems  -----

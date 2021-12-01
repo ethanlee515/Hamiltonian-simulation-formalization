@@ -21,17 +21,19 @@ Inductive HScalar :=
     | HScReal (r : R) (literal : string)
         (* Recording the string for trotterization *).
 
-Inductive TIH :=
-    | HAdd (h1 h2 : TIH)
-    | HMult (h1 h2 : TIH)
-    | HScale (s : HScalar) (h: TIH)
-    | HPauli (id: string) (p: Pauli).
+Inductive HPauli := HIdOp (loc : string) (p : Pauli).
+
+Record Summand := makeSummand
+{
+    hScale : HScalar;
+    hPaulis : list HPauli;
+}.
 
 Record HSF_Term := makeHSF_Term
 {
     TermId : string;
     Duration : HScalar;
-    Hamiltonian : TIH;
+    Hamiltonian : list Summand;
 }.
 
 Record H_Program := makeHProg
