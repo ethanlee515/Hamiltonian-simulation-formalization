@@ -1,6 +1,18 @@
 Require Import Reals QWIRE.Matrix.
 Require Import Complex.
 
+(* -- Sequence convergence in metric space -- *)
+
+(* Somehow this isn't in the standard library.
+ * We have limit_in, but that's for N goes to an actual value as opposed to infty
+ *)
+(* Print limit_in. *)
+
+Definition seq_conv (X : Metric_Space) (seq : nat -> Base X) (lim : Base X) :=
+    forall eps : R, eps > 0 ->
+    exists N : nat, 
+        (forall n : nat, (n >= N)%nat -> X.(dist) (seq n) lim < eps).
+
 (* -- Showing that matrices form a metric space -- *)
 
 (* We could define operator norm and show that the norm induces a metric...
@@ -71,13 +83,10 @@ Fixpoint mat_psum {dim : nat} (seq : nat -> Square dim) (N : nat) : Square dim :
     | O => seq O
     | S pred => Mplus (mat_psum seq pred) (seq N)
     end.
-
-(* Can't use the limit_in since it's limit as N goes to an actual value as opposed to infinity *)
-(* Print limit_in. *)
+  
 (* Print infinite_sum. *)
-Fixpoint mat_infinite_sum {dim : nat} (seq : nat -> Square dim) (result : Square dim) :=
-    forall eps : R, eps > 0 -> exists N : nat,
-    (forall n : nat, (n >= N)%nat -> (MatrixMetricSpace n).(dist) (mat_psum seq n) result < eps).
+Definition mat_infinite_sum {dim : nat} (seq : nat -> Square dim) (result : Square dim) :=
+    seq_conv (MatrixMetricSpace dim) (mat_psum seq) result.
 
 (* fucking scuffed *)
 Definition matrix_exponential {n : nat} (M Mexp : Square n) :=

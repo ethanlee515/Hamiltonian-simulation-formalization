@@ -106,17 +106,17 @@ Inductive program_valid : H_Program -> Prop :=
 
 (* Inductive definition for semantics of programs *)
 (* I make use of "dims" here so this should work with both qubits and fock spaces *)
-Inductive sem_program (n : nat) : H_Program -> Square n -> Prop :=
+Inductive sem_program {n : nat} : H_Program -> Square n -> Prop :=
   | sem_program_nil (D : list string)
                     (Hvalid : program_valid (makeHProg D []))
                     (Hdims : dims (makeHProg D []) = n) :
-      sem_program n (makeHProg D []) (I n)
+      sem_program (makeHProg D []) (I n)
   | sem_program_cons (D : list string) (t : HSF_Term) (T : list HSF_Term) (St SP : Square n)
                      (Ht : sem_term (makeHProg D T) t St)
-                     (HP : sem_program n (makeHProg D T) SP)
+                     (HP : sem_program (makeHProg D T) SP)
                      (Hvalid : program_valid (makeHProg D (t :: T)))
                      (Hdims : dims (makeHProg D (t :: T)) = n) :
-      sem_program n (makeHProg D (t :: T)) (St × SP)
+      sem_program (makeHProg D (t :: T)) (St × SP)
 .
 
 Definition ham_commute (P : H_Program) (T1 T2 : HSF_Term) : Prop :=
@@ -134,7 +134,7 @@ Theorem commuting_Ham_semantics {n : nat} (H1 H2 : HSF_Term) :
   forall (P : H_Program) (D : list string) (St1 St2 SP1 SP2 : Square n),
     D = P.(Decls) ->
     sem_term P H1 St1 -> sem_term P H2 St2 ->
-    sem_program n (makeHProg D [H2; H1]) SP1 -> sem_program n (makeHProg D [H1; H2]) SP2 ->
+    sem_program (makeHProg D [H2; H1]) SP1 -> sem_program (makeHProg D [H1; H2]) SP2 ->
     ham_commute P H1 H2 ->
     SP1 = SP2.
 Proof. Admitted.
