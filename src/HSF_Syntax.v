@@ -23,7 +23,7 @@ Inductive HScalar :=
 
 Inductive HPauli := HIdOp (loc : string) (p : Pauli).
 
-Record Summand := makeSummand
+Record TIH_Term := makeTIH_Term
 {
     hScale : HScalar;
     hPaulis : list HPauli;
@@ -33,7 +33,7 @@ Record HSF_Term := makeHSF_Term
 {
     TermId : string;
     Duration : HScalar;
-    Hamiltonian : list Summand;
+    Hamiltonian : list TIH_Term;
 }.
 
 Record H_Program := makeHProg
