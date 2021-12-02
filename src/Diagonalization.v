@@ -1,6 +1,6 @@
 Require Import Reals.
 Require Import QWIRE.Matrix.
-
+Require Import MatrixExponential.
 
 (*
      -----  Definitions  -----
@@ -27,11 +27,10 @@ Definition exp_herm {n : nat} (M_exp M : Square n) : Prop :=
   exists (Tinv D T : Square n),
     Diagonalization M Tinv D T /\ Diagonalization M_exp Tinv (exp_diag D) T.
 
-(*
-Theorem exp_herm {n : nat} (M_exp M D T Tinv : Square n) :
-  Diagonalization M Tinv D T ->  
-  Diagonalization M_exp Tinv (exp_diag D) T.
- *)
+Theorem exp_herm_correct {n : nat} (M_exp M : Square n) :
+    matrix_exponential M M_exp <-> exp_herm M M_exp.
+Proof.
+    Admitted.
 
 (* Simultaneously diagonalizable *)
 Definition Sim_diag {n : nat} (A B : Square n) :=

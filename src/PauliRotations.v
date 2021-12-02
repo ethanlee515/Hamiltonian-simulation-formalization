@@ -37,40 +37,24 @@ Definition PauliToMatrix (p : Pauli) : Square 2 :=
     | Pauli_Z => ZGate
     end.
 
-Definition RZGate (t : R) : Square 2 := fun i j =>
-    match (i, j) with
-    | (1, 0) => exp t
-    | (0, 1) => exp (-t)
-    | _ => RtoC 0
-    end.
+(* Implemented by Qiskit *)
+Parameter RXGate : R -> Square 2.
+Parameter RYGate : R -> Square 2.
+Parameter RZGate : R -> Square 2.
+Parameter RXXGate : R -> Square 4.
+Parameter RZZGate : R -> Square 4.
 
-Lemma RZGate_Correct :
-    forall (theta : R),
-        matrix_exponential ((scale theta ZGate)) (RZGate theta).
-Proof.
-    Admitted.
-
-Definition RXGate (t : R) : Square 2 :=
-    (* TODO *) I 2.
-
-Lemma RXGate_Correct :
+Axiom RXGate_Correct :
     forall (theta : R),
         matrix_exponential ((scale theta XGate)) (RXGate theta).
-Proof.
-    Admitted.
 
-Definition RYGate (t : R) : Square 2 :=
-    (* TODO *) I 2.
-Lemma RYGate_Correct :
+Axiom RYGate_Correct :
     forall (theta : R),
         matrix_exponential ((scale theta YGate)) (RYGate theta).
-Proof.
-    Admitted.
 
-Definition RXXGate (t : R) : Square 4 :=
-    (* TODO *) fun (i j : nat) => 0.
-
-(* TODO correctness lemma..... *)
+Axiom RZGate_Correct :
+    forall (theta : R),
+        matrix_exponential ((scale theta ZGate)) (RZGate theta).
 
 Definition RXYGate (t : R) : Square 4 :=
     (* TODO *) fun (i j : nat) => 0.
@@ -84,7 +68,6 @@ Definition RYYGate (t : R) : Square 4 :=
 Definition RYZGate (t : R) : Square 4 :=
     (* TODO *) fun (i j : nat) => 0.
 
-Definition RZZGate (t : R) : Square 4 :=
-    (* TODO *) fun (i j : nat) => 0.
+(* TODO correctness lemma..... *)
 
 (* Three qubits rotation is nice to have but not top priority *)

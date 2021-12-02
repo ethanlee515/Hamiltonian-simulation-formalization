@@ -20,5 +20,5 @@ let compile in_filename out_filename dt =
 
 match Array.length Sys.argv with
 | 4 -> compile Sys.argv.(1) Sys.argv.(2) Sys.argv.(3)
-| _ -> Printf.printf "usage: ./compile program.ham program.qasm 0.01\n"
+| _ -> Printf.printf "usage: ./compile program.ham program.qasm 1000\n"
 ;;
