@@ -1,8 +1,6 @@
 Require Import Reals QWIRE.Matrix.
 Require Import Complex.
 
-Print Metric_Space.
-
 (* -- Showing that matrices form a metric space -- *)
 
 (* We could define operator norm and show that the norm induces a metric...
@@ -60,7 +58,6 @@ Lemma dist_mats_tri :
 Proof.
     Admitted.
 
-
 Definition MatrixMetricSpace (n : nat) := Build_Metric_Space (Square n)
     dist_mats
     (dist_mats_pos n)
@@ -68,31 +65,20 @@ Definition MatrixMetricSpace (n : nat) := Build_Metric_Space (Square n)
     (dist_mats_refl n)
     (dist_mats_tri n).
 
-(* TODO https://coq.github.io/doc/v8.9/stdlib/Coq.Reals.Rlimit.html *)
-
-(* Stolen and generalized from real case *)
- Print R_dist. 
-Definition C_dist c1 c2 :=
-    Cmod (c1 - c2).
-
-Print sum_f_R0. 
-Fixpoint sum_f_C0 (f:nat -> C) (N:nat) : C :=
+(* Print sum_f_R0. *)
+Fixpoint mat_psum {dim : nat} (seq : nat -> Square dim) (N : nat) : Square dim :=
     match N with
-        | O => f 0%nat
-        | S i => sum_f_C0 f i + f (S i)
+    | O => seq O
+    | S pred => Mplus (mat_psum seq pred) (seq N)
     end.
 
+(* Can't use the limit_in since it's limit as N goes to an actual value as opposed to infinity *)
+(* Print limit_in. *)
 (* Print infinite_sum. *)
-Definition infinite_sumC (s : nat -> C) (l : C) :=
-    forall eps:R,
-        eps > 0 ->
-        exists N : nat,
-    (forall n:nat, (n >= N)%nat -> C_dist (sum_f_C0 s n) l < eps).
+Fixpoint mat_infinite_sum {dim : nat} (seq : nat -> Square dim) (result : Square dim) :=
+    forall eps : R, eps > 0 -> exists N : nat,
+    (forall n : nat, (n >= N)%nat -> (MatrixMetricSpace n).(dist) (mat_psum seq n) result < eps).
 
 (* fucking scuffed *)
 Definition matrix_exponential {n : nat} (M Mexp : Square n) :=
-    forall i j,
-        infinite_sumC (fun k => ((Mmult_n k M) i j) / (INR (fact k))) (Mexp i j).
-
-Require Import Rlimit.
-
+    mat_infinite_sum (fun k => scale (/ (INR (fact k))) (Mmult_n k M) ) Mexp.
