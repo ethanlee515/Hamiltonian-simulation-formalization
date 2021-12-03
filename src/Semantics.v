@@ -35,7 +35,7 @@ Fixpoint find_qubit (decls : list string) (label : string) : nat :=
     end.
 
 
-Fixpoint interpret_HPauli (decls : list string) (p : HPauli)
+Definition interpret_HPauli (decls : list string) (p : HPauli)
         : option (Square (2 ^ (List.length decls))%nat) :=
     match p with HIdOp label pauli =>
         let num_qubits := List.length decls in
@@ -57,7 +57,7 @@ Fixpoint interpret_HPaulis (decls : list string) (ps : list HPauli)
     | [] => Some (I (2 ^ (List.length decls))%nat)
     end.
         
-Fixpoint interpret_Summand (decls : list string) (s : Summand)
+Definition interpret_TIH_Term (decls : list string) (s : TIH_Term)
         : option (Square (2 ^ (List.length decls))%nat) :=
     let sc_v := sem_HScalar s.(hScale) in
     match interpret_HPaulis decls s.(hPaulis) with
@@ -65,20 +65,20 @@ Fixpoint interpret_Summand (decls : list string) (s : Summand)
     | None => None
     end.
 
-Fixpoint interpret_Summands (decls : list string) (ss : list Summand)
+Fixpoint interpret_TIH_Terms (decls : list string) (ss : list TIH_Term)
         : option (Square (2 ^ (List.length decls))%nat) :=
     match ss with
     | head :: tail =>
-        match (interpret_Summand decls head, interpret_Summands decls tail) with
+        match (interpret_TIH_Term decls head, interpret_TIH_Terms decls tail) with
         | (Some m1, Some m2) => Some (Mplus m1 m2)
         | _ => None
         end
     | [] => Some Zero
     end.
 
-(* Convert a TIH term into a Hamiltonian operator (an n x n matrix) *)
+(* Convert a HSF term into a Hamiltonian operator (an n x n matrix) *)
 Definition interpret_term (prog : H_Program) (term : HSF_Term) : option (Square (dims prog)) :=
-    interpret_Summands prog.(Decls) term.(Hamiltonian).
+    interpret_TIH_Terms prog.(Decls) term.(Hamiltonian).
 
 (* Relational definition of Hamiltonian semantics *)
 Definition sem_term {n : nat} (P : H_Program) (T : HSF_Term) (S : Square n) : Prop :=
