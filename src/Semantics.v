@@ -89,20 +89,16 @@ Definition sem_term {n : nat} (P : H_Program) (T : HSF_Term) (S : Square n) : Pr
     | None => False
     end.
 
+(* Lists without duplicates *)
+Inductive NoDup {A : Type} : list A -> Prop :=
+    | NoDup_nil : NoDup nil
+    | NoDup_cons : forall x l, ~ In x l -> NoDup l -> NoDup (x::l).
+
 (* Inductive definition for valid programs *)
 (* Is the empty program valid? *)
-Inductive program_valid : H_Program -> Prop :=
-  | program_base (d : string) :
-      program_valid (makeHProg [d] [])
-  | program_decl (d : string) (D : list string) (T : list HSF_Term)
-                 (HP : program_valid (makeHProg D T))
-                 (Hd : ~(In d D)) :
-      program_valid (makeHProg (d::D) T)
-  | program_tih (D : list string) (t : HSF_Term) (T : list HSF_Term)
-                (HP : program_valid (makeHProg D T))
-                (Ht : In t.(TermId) D):
-      program_valid (makeHProg D (t :: T))
-.
+Definition program_valid (P : H_Program) : Prop :=
+  (List.length (Decls P) > 0)%nat /\ NoDup (Decls P) /\
+  forall (t : HSF_Term), In t (Terms P) -> In (TermId t) (Decls P).
 
 (* Inductive definition for semantics of programs *)
 (* I make use of "dims" here so this should work with both qubits and fock spaces *)
@@ -129,6 +125,170 @@ Definition ham_commute (P : H_Program) (T1 T2 : HSF_Term) : Prop :=
      -----  Theorems  -----
  *)
 
+
+
+(* 
+   Program Lemmas 
+ *)
+
+Lemma semantics_implies_program_valid {n : nat} : forall (P : H_Program) (S : Square n),
+    sem_program P S -> program_valid P.
+Proof. Admitted.
+
+Lemma term_removal_valid : forall P t T,
+    program_valid P -> Terms P = t :: T -> program_valid (makeHProg (Decls P) T).
+Proof.
+  intros P t T HP HT. inversion HP. inversion H0. clear HP H0. split.
+  - simpl. assumption.
+  - split.
+    + simpl. assumption.
+    + simpl. intros t' Ht'. apply H2. rewrite HT. right. auto.
+Qed.
+
+Lemma no_terms_valid : forall (P : H_Program),
+    program_valid P -> program_valid (makeHProg (Decls P) []).
+Proof.
+  intros P HP. destruct HP as [H1 [H2 H3]]. split; simpl; try auto.
+  split; simpl; try auto.
+  intros t Ht. contradiction.
+Qed.
+
+Lemma semantics_implies_no_terms_valid {n : nat} : forall (P : H_Program) (S : Square n),
+    sem_program P S -> program_valid (makeHProg (Decls P) []).
+Proof.
+  intros P S HP. apply no_terms_valid.
+  remember (semantics_implies_program_valid P S HP) as goal.
+  apply goal.
+Qed.
+
+Lemma extract_dims {n : nat} : forall (P : H_Program) (S : Square n),
+    sem_program P S -> dims P = n.
+Proof.
+  intros P S HP. inversion HP; subst; auto.
+Qed.
+
+(* Term semantics are well-formed *)
+Lemma term_semantics_WF {n : nat} : forall (P : H_Program) (T : HSF_Term) (S : Square n),
+    sem_term P T S -> WF_Matrix S.
+Proof. Admitted.
+
+(* Program semantics are well-formed *)
+Lemma prog_semantics_WF {n : nat} : forall (P : H_Program) (S : Square n),
+    sem_program P S -> WF_Matrix S.
+Proof. Admitted.
+
+Lemma prog_semantics_unique {n : nat} : forall (P : H_Program) (S1 S2 : Square n),
+    sem_program P S1 -> sem_program P S2 -> S1 = S2.
+Proof. Admitted.
+
+(*
+   Commuting Lemmas
+ *)
+
+Lemma ham_commute_terms : forall (P : H_Program) (T1 T2 : HSF_Term),
+    ham_commute P T1 T2 ->
+    exists H1 H2, interpret_term P T1 = Some H1 /\ interpret_term P T2 = Some H2 /\
+                  Mat_commute H1 H2.
+Proof.
+  intros.
+  destruct (interpret_term P T1) eqn:E1.
+  - destruct (interpret_term P T2) eqn:E2.
+    + exists m, m0. unfold ham_commute in H.
+      rewrite E1 in H. rewrite E2 in H. auto.
+    + exfalso. unfold ham_commute in H.
+      rewrite E1 in H. rewrite E2 in H. auto.
+  - exfalso. unfold ham_commute in H.
+    rewrite E1 in H. auto.
+Qed.
+
+(* This probably belongs in MatrixExponential.v *)
+Lemma mat_exp_equiv_scalar {n : nat} : forall (c : R) (M S Sc SM : Square n),
+    matrix_exponential (scale c M) S ->
+    matrix_exponential M SM ->
+    S = scale (exp c) SM.
+Proof. Admitted.
+
+(* This probably belongs in MatrixExponential.v too *)
+Lemma mat_exp_commute_add {n : nat} : forall (M N SM SN SMN : Square n),
+    matrix_exponential M SM ->
+    matrix_exponential N SN ->
+    matrix_exponential (M .+ N) SMN ->
+    Mat_commute M N ->
+    SM × SN = SMN.
+Proof. Admitted.
+
+Lemma ham_commute_term_semantics {n : nat} :
+  forall (P : H_Program) (H1 H2 : HSF_Term) (S1 S2 : Square n),
+  sem_term P H1 S1 -> sem_term P H2 S2 ->
+  ham_commute P H1 H2 -> Mat_commute S1 S2.
+Proof.
+  intros P H1 H2 S1 S2 HH1 HH2 Hcomm.
+  destruct (ham_commute_terms P H1 H2 Hcomm) as [M1 [M2 [HM1 [HM2 HMcomm]]]]. clear Hcomm.
+  unfold sem_term in HH1. rewrite HM1 in HH1. inversion HH1 as [Hd HS1]. clear HH1 HM1.
+  unfold sem_term in HH2. rewrite HM2 in HH2. inversion HH2 as [Hd2 HS2]. clear HH2 HM2 Hd2.
+  Admitted.
+
+
+(* The semantics of a term depend only on the declarations of the program 
+   (not on the Hamiltonian terms) *)
+Lemma sem_term_depends_on_D {n : nat} : forall P1 P2 H (S : Square n),
+    sem_term P1 H S -> Decls P1 = Decls P2 -> sem_term P2 H S.
+Proof.
+  intros P1 P2 H S Ht Hd. unfold sem_term in Ht.
+  destruct (interpret_term P1 H) eqn:E.
+  - inversion Ht. clear Ht.
+     unfold sem_term. assert (H2 : interpret_term P2 H = Some m). {
+      subst. rewrite <- E. unfold interpret_term. rewrite Hd. reflexivity. }
+     assert (H3 : dims P1 = dims P2). {
+       unfold dims. unfold count_sites. rewrite Hd. reflexivity. }
+    rewrite H2. split.
+    + symmetry. subst. assumption.
+    + rewrite <- H3. assumption.
+  - contradiction.
+Qed.
+
+Lemma two_term_program_semantics {n : nat} :
+  forall (P : H_Program) (H1 H2 : HSF_Term) (St1 St2 SP : Square n),
+    sem_term P H1 St1 -> sem_term P H2 St2 ->
+    sem_program {| Decls := P.(Decls); Terms := [H2; H1] |} SP ->
+    SP = St2 × St1.
+Proof.
+  intros P H1 H2 St1 St2 SP HSt1 HSt2 HP.
+  assert (HP' : sem_program {| Decls := Decls P; Terms := [H1] |} (St1 × I n)). {
+    apply sem_program_cons.
+    - eapply sem_term_depends_on_D.
+      + apply HSt1.
+      + reflexivity.
+    - apply sem_program_nil. 
+      + remember (semantics_implies_no_terms_valid {| Decls := Decls P; Terms := [H2; H1] |}
+                                                   SP HP) as HH. clear HeqHH.
+        simpl in HH. assumption.
+      + remember (extract_dims {| Decls := Decls P; Terms := [H2; H1] |} SP HP) as Hdims.
+        clear HeqHdims. unfold dims in *. unfold count_sites in *. simpl in *. assumption.
+    - apply semantics_implies_program_valid in HP.
+      eapply term_removal_valid with (t := H2) (T := [H1]) in HP.
+      + simpl in HP. assumption.
+      + reflexivity.
+    - apply extract_dims in HP. unfold dims in *. unfold count_sites in *.
+      simpl in *. assumption.
+  }
+  assert (HP'' : sem_program {| Decls := Decls P; Terms := [H2; H1] |} (St2 × (St1 × I n))). {
+    apply sem_program_cons.
+    - eapply sem_term_depends_on_D.
+      + apply HSt2.
+      + reflexivity.
+    - assumption.
+    - apply semantics_implies_program_valid in HP. assumption.
+    - apply extract_dims in HP'. unfold dims in *. unfold count_sites in *.
+      simpl in *. assumption.
+  }
+  assert (HMmultI : St1 × I n = St1). {
+    apply Mmult_1_r. apply term_semantics_WF in HSt1. assumption.
+  }
+  rewrite HMmultI in HP''. eapply prog_semantics_unique.
+  apply HP. apply HP''.
+Qed.
+
 (* Commuting Hamiltonians have the same semantics *)
 Theorem commuting_Ham_semantics {n : nat} (H1 H2 : HSF_Term) :
   forall (P : H_Program) (D : list string) (St1 St2 SP1 SP2 : Square n),
@@ -137,7 +297,16 @@ Theorem commuting_Ham_semantics {n : nat} (H1 H2 : HSF_Term) :
     sem_program (makeHProg D [H2; H1]) SP1 -> sem_program (makeHProg D [H1; H2]) SP2 ->
     ham_commute P H1 H2 ->
     SP1 = SP2.
-Proof. Admitted.
+Proof.
+  intros P D St1 St2 SP1 SP2 HD Ht1 Ht2 HP1 HP2 Hcomm.
+  remember (ham_commute_term_semantics P H1 H2 St1 St2 Ht1 Ht2 Hcomm) as H.
+  clear HeqH Hcomm. rename H into Hcomm.
+  assert (H : SP1 = St2 × St1 -> SP2 = St1 × St2 -> SP1 = SP2).
+  { intros HSP1 HSP2. subst. symmetry. apply Hcomm. }
+  apply H.
+  - subst. apply (two_term_program_semantics P H1 H2 St1 St2 SP1); assumption.
+  - subst. apply (two_term_program_semantics P H2 H1 St2 St1 SP2); assumption.
+Qed.
 
 
 (* This theorem statement is not correct,
