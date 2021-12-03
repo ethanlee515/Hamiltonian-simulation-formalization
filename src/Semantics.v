@@ -122,18 +122,44 @@ Definition ham_commute (P : H_Program) (T1 T2 : HSF_Term) : Prop :=
     end.
 
 (*
-     -----  Theorems  -----
+     -----  Lemmas and Theorems  -----
  *)
 
 
 
 (* 
-   Program Lemmas 
+   Misc. Lemmas
+ *)
+
+Lemma mat_eq_equiv {n m : nat} : forall (A : Square n) (B : Square m),
+    A = B -> A == B.
+Proof.
+  intros. rewrite H.
+  unfold "≡". intros. reflexivity.
+Qed.
+
+Lemma obvious_lemma {n m : nat} : forall (A : Square n) (B : Square m),
+    A = B -> n = m.
+Proof. Admitted.
+
+
+
+
+(* 
+   Lemmas about terms and programs
  *)
 
 Lemma semantics_implies_program_valid {n : nat} : forall (P : H_Program) (S : Square n),
     sem_program P S -> program_valid P.
-Proof. Admitted.
+Proof.
+  intros P S HS. inversion HS; subst.
+  - destruct Hvalid as [Hlen [Hdup Hin]]. split; simpl in *.
+    + assumption.
+    + split; assumption.
+  - destruct Hvalid as [Hlen [Hdup Hin]]. split; simpl in *.
+    + assumption.
+    + split; assumption.
+Qed.    
 
 Lemma term_removal_valid : forall P t T,
     program_valid P -> Terms P = t :: T -> program_valid (makeHProg (Decls P) T).
@@ -167,22 +193,89 @@ Proof.
   intros P S HP. inversion HP; subst; auto.
 Qed.
 
-(* Term semantics are well-formed *)
-Lemma term_semantics_WF {n : nat} : forall (P : H_Program) (T : HSF_Term) (S : Square n),
-    sem_term P T S -> WF_Matrix S.
+
+
+(* 
+    Lemmas about term interpretation
+*)
+
+Lemma interpret_TIH_Term_WF :
+  forall (decls : list string) (s : TIH_Term) (M : Square (2 ^ (List.length decls))%nat),
+    interpret_TIH_Term decls s = Some M -> WF_Matrix M.
 Proof. Admitted.
 
-(* Program semantics are well-formed *)
-Lemma prog_semantics_WF {n : nat} : forall (P : H_Program) (S : Square n),
-    sem_program P S -> WF_Matrix S.
+Lemma interpret_TIH_Terms_WF : 
+  forall (decls : list string) (ss : list TIH_Term) (M : Square (2 ^ (List.length decls))%nat),
+    interpret_TIH_Terms decls ss = (Some M) -> WF_Matrix M.
+Proof.
+  intros decls ss. generalize dependent decls. induction ss as [|t T].
+  - intros. inversion H. apply WF_Zero.
+  - intros. inversion H. destruct (interpret_TIH_Term decls t) eqn:E1.
+    + destruct (interpret_TIH_Terms decls T) eqn:E2.
+      * apply IHT in E2. inversion H1. apply WF_plus.
+        -- eapply interpret_TIH_Term_WF. apply E1.
+        -- assumption.
+      * discriminate.
+    + discriminate.
+Qed.
+
+Lemma interpret_term_WF {n : nat} :
+  forall (P : H_Program) (T : HSF_Term) (M : Square n),
+    interpret_term P T = Some M -> WF_Matrix M.
+Proof.
+  intros P T M Hit. remember (2 ^ (List.length (Decls P)))%nat as m.
+  assert (Hmn : n = m). {
+    destruct (interpret_term P T).
+    - inversion Hit. apply obvious_lemma in H0.
+      unfold dims in H0. unfold count_sites in H0.
+      subst. reflexivity.
+    - inversion Hit.
+  }
+  assert (Hdims : dims P = (2 ^ Datatypes.length (Decls P))%nat). reflexivity.    
+  subst. apply interpret_TIH_Terms_WF with (Hamiltonian T).
+  unfold interpret_term in Hit. assumption.
+Qed.
+  
+
+  
+(* ********************** *)
+(* Lemmas that should probably be somewhere else *)
+
+(* This probably belongs in MatrixExponential.v *)
+Lemma mat_exp_equiv_scalar {n : nat} : forall (c : R) (M S Sc SM : Square n),
+    matrix_exponential (scale c M) S ->
+    matrix_exponential M SM ->
+    S = scale (exp c) SM.
 Proof. Admitted.
 
-Lemma prog_semantics_unique {n : nat} : forall (P : H_Program) (S1 S2 : Square n),
-    sem_program P S1 -> sem_program P S2 -> S1 = S2.
+(* This probably belongs in MatrixExponential.v too *)
+Lemma mat_exp_commute_add {n : nat} : forall (M N SM SN SMN : Square n),
+    matrix_exponential M SM ->
+    matrix_exponential N SN ->
+    matrix_exponential (M .+ N) SMN ->
+    Mat_commute M N ->
+    SM × SN = SMN.
 Proof. Admitted.
+
+(* This lemma is true, but I'm not sure how to prove it yet *)
+Lemma mat_exp_well_defined {n : nat} : forall (M : Square n),
+    exists (Mexp : Square n), matrix_exponential M Mexp.
+Proof. Admitted.
+
+Lemma mat_exp_unique {n : nat} : forall (M Mexp1 Mexp2 : Square n),
+    matrix_exponential M Mexp1 -> matrix_exponential M Mexp2 -> Mexp1 = Mexp2.
+Proof. Admitted.
+
+Lemma mat_exp_WF {n : nat} : forall (M Mexp : Square n),
+    matrix_exponential M Mexp -> WF_Matrix M -> WF_Matrix Mexp.
+Proof. Admitted.
+
+(* ********************** *) 
+
+
 
 (*
-   Commuting Lemmas
+    Lemmas about commuting
  *)
 
 Lemma ham_commute_terms : forall (P : H_Program) (T1 T2 : HSF_Term),
@@ -201,21 +294,6 @@ Proof.
     rewrite E1 in H. auto.
 Qed.
 
-(* This probably belongs in MatrixExponential.v *)
-Lemma mat_exp_equiv_scalar {n : nat} : forall (c : R) (M S Sc SM : Square n),
-    matrix_exponential (scale c M) S ->
-    matrix_exponential M SM ->
-    S = scale (exp c) SM.
-Proof. Admitted.
-
-(* This probably belongs in MatrixExponential.v too *)
-Lemma mat_exp_commute_add {n : nat} : forall (M N SM SN SMN : Square n),
-    matrix_exponential M SM ->
-    matrix_exponential N SN ->
-    matrix_exponential (M .+ N) SMN ->
-    Mat_commute M N ->
-    SM × SN = SMN.
-Proof. Admitted.
 
 Lemma ham_commute_term_semantics {n : nat} :
   forall (P : H_Program) (H1 H2 : HSF_Term) (S1 S2 : Square n),
@@ -226,9 +304,86 @@ Proof.
   destruct (ham_commute_terms P H1 H2 Hcomm) as [M1 [M2 [HM1 [HM2 HMcomm]]]]. clear Hcomm.
   unfold sem_term in HH1. rewrite HM1 in HH1. inversion HH1 as [Hd HS1]. clear HH1 HM1.
   unfold sem_term in HH2. rewrite HM2 in HH2. inversion HH2 as [Hd2 HS2]. clear HH2 HM2 Hd2.
-  Admitted.
+  remember (mat_exp_well_defined (- Ci * sem_HScalar (Duration H1) .* M1
+     .+ - Ci * sem_HScalar (Duration H2) .* M2)) as HM12_.
+  inversion HM12_ as [S12 HM12]. clear HeqHM12_ HM12_.
+  unfold Mat_commute. subst.
+  assert (H : S1 × S2 = S12). {
+    eapply mat_exp_commute_add.
+    - apply HS1.
+    - apply HS2.
+    - apply HM12.
+    - unfold Mat_commute.
+      rewrite Mscale_mult_dist_r. rewrite Mscale_mult_dist_r.
+      rewrite Mscale_mult_dist_l. rewrite Mscale_mult_dist_l.
+      rewrite Mscale_assoc. rewrite Mscale_assoc.
+      rewrite HMcomm. rewrite Cmult_comm.
+      reflexivity.
+  }
+  rewrite H. symmetry.
+  eapply mat_exp_commute_add.
+  - apply HS2.
+  - apply HS1.
+  - rewrite Mplus_comm. apply HM12.
+  - unfold Mat_commute.
+    rewrite Mscale_mult_dist_r. rewrite Mscale_mult_dist_r.
+    rewrite Mscale_mult_dist_l. rewrite Mscale_mult_dist_l.
+    rewrite Mscale_assoc. rewrite Mscale_assoc.
+    rewrite HMcomm. rewrite Cmult_comm.
+    reflexivity.
+Qed.
 
+(* 
+    Lemmas about semantics
+ *)
 
+(* Term semantics are well-formed *)
+Lemma term_semantics_WF {n : nat} : forall (P : H_Program) (T : HSF_Term) (S : Square n),
+    sem_term P T S -> WF_Matrix S.
+Proof.
+  intros P T S HT. unfold sem_term in HT.
+  destruct (interpret_term P T) as [M |] eqn:E; try contradiction.
+  inversion HT as [Hdims HS]. clear HT. subst.
+  apply interpret_term_WF in E.
+  eapply mat_exp_WF.
+  - apply HS.
+  - apply WF_scale. apply E.
+Qed.  
+    
+(* This lemma is not currently needed.
+(* Program semantics are well-formed *)
+Lemma prog_semantics_WF {n : nat} : forall (P : H_Program) (S : Square n),
+    sem_program P S -> WF_Matrix S.
+Proof. Admitted.
+*)
+
+Lemma term_semantics_unique {n : nat} :
+  forall (P : H_Program) (T : HSF_Term) (S1 S2 : Square n),
+    sem_term P T S1 -> sem_term P T S2 -> S1 = S2.
+Proof.
+  intros P T S1 S2 HS1 HS2.
+  unfold sem_term in HS1. unfold sem_term in HS2.
+  destruct (interpret_term P T) as [M |]; try contradiction.
+  eapply mat_exp_unique.
+  - inversion HS1; subst. apply H0.
+  - inversion HS2; subst. apply H0.
+Qed.
+
+Lemma prog_semantics_unique {n : nat} : forall (P : H_Program) (S1 S2 : Square n),
+    sem_program P S1 -> sem_program P S2 -> S1 = S2.
+Proof.
+  intros P S1 S2 HS1 HS2. generalize dependent S2. induction HS1; intros S2 HS2.
+  - inversion HS2. reflexivity.
+  - inversion HS2; subst. clear Hdims0.
+    assert (HSP : SP = SP0). {
+      apply IHHS1. assumption.
+    }
+    assert (HSt : St = St0). {
+      eapply term_semantics_unique. apply Ht. assumption.
+    }
+    subst. reflexivity.
+Qed.
+  
 (* The semantics of a term depend only on the declarations of the program 
    (not on the Hamiltonian terms) *)
 Lemma sem_term_depends_on_D {n : nat} : forall P1 P2 H (S : Square n),
@@ -288,6 +443,14 @@ Proof.
   rewrite HMmultI in HP''. eapply prog_semantics_unique.
   apply HP. apply HP''.
 Qed.
+
+
+
+
+(*
+    Main Theorem
+ *)
+
 
 (* Commuting Hamiltonians have the same semantics *)
 Theorem commuting_Ham_semantics {n : nat} (H1 H2 : HSF_Term) :

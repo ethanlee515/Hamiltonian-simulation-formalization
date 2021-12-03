@@ -88,6 +88,5 @@ Fixpoint mat_psum {dim : nat} (seq : nat -> Square dim) (N : nat) : Square dim :
 Definition mat_infinite_sum {dim : nat} (seq : nat -> Square dim) (result : Square dim) :=
     seq_conv (MatrixMetricSpace dim) (mat_psum seq) result.
 
-(* fucking scuffed *)
 Definition matrix_exponential {n : nat} (M Mexp : Square n) :=
     mat_infinite_sum (fun k => scale (/ (INR (fact k))) (Mmult_n k M) ) Mexp.
