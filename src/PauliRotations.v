@@ -1,6 +1,7 @@
 Require Import Complex.
 Require Import QWIRE.Matrix.
 Require Import MatrixExponential.
+Require Import Diagonalization.
 
 Inductive Pauli :=
     | Pauli_I
@@ -71,3 +72,47 @@ Definition RYZGate (t : R) : Square 4 :=
 (* TODO correctness lemma..... *)
 
 (* Three qubits rotation is nice to have but not top priority *)
+
+(* Universal 1-qubit gate; provided by Qasm *)
+Definition UGate (theta phi lambda : R) (i j : nat) : C :=
+  match (i, j) with
+  | (0, 0) => cos(theta / 2)
+  | (0, 1) => - Cexp lambda * sin(theta / 2)
+  | (1, 0) => Cexp phi * sin(theta / 2)
+  | (1, 1) => Cexp (phi + lambda) * cos(theta / 2)
+  | _ => 0
+  end.
+
+Definition TYZ_Gate_dag (i j : nat) : C :=
+  match (i, j) with
+  | (0, 0) => / sqrt 2
+  | (0, 1) => / sqrt 2
+  | (1, 0) => Ci / sqrt 2
+  | (1, 1) => -Ci / sqrt 2              
+  | _ => 0
+  end.
+
+Lemma TYZ_Gate_dag_impl :
+  TYZ_Gate_dag = UGate (PI / 2) (PI / 2) PI.
+Proof.
+Admitted.
+
+Definition TYZ_Gate (i j : nat) : C :=
+  match (i, j) with
+  | (0, 0) => / sqrt 2
+  | (0, 1) => -Ci / sqrt 2
+  | (1, 0) => / sqrt 2          
+  | (1, 1) => Ci / sqrt 2              
+  | _ => 0
+  end.
+
+Lemma TYZ_Gate_impl :
+  TYZ_Gate = UGate (PI / 2) 0 (PI / 2).
+Proof.
+Admitted.
+
+Lemma TYZ_correct :
+  Diagonalization YGate TYZ_Gate_dag ZGate TYZ_Gate.
+Proof.
+Admitted.
+

@@ -42,7 +42,6 @@ Definition sliceTerm (decls : list string) (duration : HScalar) (term : TIH_Term
   | _ => None (* Too nonlocal *)
   end.
 
-
 Fixpoint sliceTerms (decls : list string)
          (duration : HScalar)
          (terms : list TIH_Term)
