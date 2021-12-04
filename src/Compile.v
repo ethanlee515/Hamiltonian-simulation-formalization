@@ -24,7 +24,7 @@ Definition compile (program_text : string) (nSlices_text : string) :=
         end
     ) in
     let program := parseProgram program_text in
-    let qasm := trotterize program nSlices in
+    let qasm := (trotterize program nSlices).(output) in
     print_qasm_program qasm.
 
 Extraction "extracted/compile_coq.ml" compile.
