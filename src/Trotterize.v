@@ -128,9 +128,6 @@ Definition trotterize (prog : H_Program) (nSlices : nat) :=
   | None => makeTrotRes false idProg
   end.
 
-Definition QasmSemantics (prog : QasmProgram) : Square (2 ^ prog.(num_qubits)) :=
-    (* TODO *) Zero.
-
 Theorem trotterize_correct :
   forall (hprog : H_Program),
       (forall nSlices, (trotterize hprog nSlices).(successful) = false) (* Cannot Trotterize *) \/
