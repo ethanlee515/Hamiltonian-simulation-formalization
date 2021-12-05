@@ -4,6 +4,19 @@ Require Import QWIRE.Matrix.
 Require Import DecimalString.
 Require Import HSF_Syntax.
 
+(* TODO test me against actual Qasm compiler *)
+Fixpoint printHScalar (sc : HScalar) : string :=
+  match sc with
+  | HScAdd sc1 sc2 => "(" ++ printHScalar sc1 ++ ") + (" ++ printHScalar sc2 ++ ")"         
+  | HScMult sc1 sc2 => "(" ++ printHScalar sc1 ++ ") * (" ++ printHScalar sc2 ++ ")"
+  | HScSub sc1 sc2 => "(" ++ printHScalar sc1 ++ ") - (" ++ printHScalar sc2 ++ ")"
+  | HScDiv sc1 sc2 => "(" ++ printHScalar sc1 ++ ") / (" ++ printHScalar sc2 ++ ")"
+  | HScExp sc => "exp(" ++ printHScalar sc ++ ")"
+  | HScCos sc => "cos(" ++ printHScalar sc ++ ")"
+  | HScSin sc => "sin(" ++ printHScalar sc ++ ")"
+  | HScReal _ s => s
+  end.
+
 Inductive QasmGate1 :=
 | Rx (theta : HScalar)
 | Ry (theta : HScalar)
@@ -11,37 +24,35 @@ Inductive QasmGate1 :=
 | QasmH
 | QasmU (theta phi lambda : HScalar).
 
-(* TODO *)
 Definition printQasmGate1 (g : QasmGate1) : string :=
     match g with
-    | Rx theta => "rx(theta)"
-    | Ry theta => "ry(TODO)"
-    | Rz theta => "rz(TODO)"
+    | Rx theta => "rx(" ++ printHScalar theta ++ ")"
+    | Ry theta => "ry(" ++ printHScalar theta ++ ")"
+    | Rz theta => "rz(" ++ printHScalar theta ++ ")"
     | QasmH => "h"
-    | QasmU theta phi lambda => "u(TODO)"
+    | QasmU theta phi lambda => "u(" ++ printHScalar theta ++ ", " ++
+                                     printHScalar phi ++ ", " ++
+                                     printHScalar lambda ++ ")"
     end.
 
 Inductive QasmGate2 :=
   | Rxx (theta : HScalar)
   | Rzz (theta : HScalar).
 
-(* TODO *)
 Definition printQasmGate2 (g : QasmGate2) : string :=
     match g with
-    | Rxx theta => "rxx(theta)"
-    | Rzz theta => "rzz(theta)"
+    | Rxx theta => "rxx(" ++ printHScalar theta ++ ")"
+    | Rzz theta => "rzz(" ++ printHScalar theta ++ ")"
     end.
 
 Definition string_of_nat (n : nat) := NilZero.string_of_int (Nat.to_int n).
 
 Inductive QasmTerm :=
-| QasmNoOp
 | QasmTerm1 (gate : QasmGate1) (loc : nat)
 | QasmTerm2 (gate : QasmGate2) (loc1 loc2 : nat).
 
 Definition printQasmTerm (t : QasmTerm) : string :=
   match t with
-    | QasmNoOp => ""
     | QasmTerm1 gate loc =>
         printQasmGate1 gate ++ " sites[" ++ string_of_nat loc ++ "];\n"
     | QasmTerm2 gate loc1 loc2 =>
@@ -79,4 +90,3 @@ Definition print_qasm_program (prog : QasmProgram) : string :=
 
 Definition interpretQasm (prog : QasmProgram) :=
     (* TODO *) I (prog.(num_qubits)).
-

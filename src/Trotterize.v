@@ -19,10 +19,8 @@ Definition makeQT1 (p : Pauli) (theta : HScalar) (loc : nat) :=
   | Pauli_Z => [QasmTerm1 (Rz theta) loc]
   end.
 
-Print HScalar.
-
 Definition HScPI := HScReal PI "pi".
-Definition HScPI2 := HScReal (PI / 2) "pi/2".
+Definition HScPI2 := HScReal (PI / 2) "(pi/2)".
 Definition HScZero := HScReal 0 "0".
 
 Definition QasmTYZ := QasmU HScPI2 HScZero HScPI2.
@@ -59,10 +57,10 @@ Definition makeQT2 (p1 p2 : Pauli)
   | (Pauli_Z, Pauli_Z) => [QasmTerm2 (Rzz theta) loc1 loc2]
   end.
 
-Definition natToHSc (n : nat) := (* TODO *) HScReal R1 "1".
+Definition natToHSc (n : nat) := HScReal (INR n) (string_of_nat n).
 
 Definition sliceTerm (decls : list string) (duration : HScalar) (term : TIH_Term) (nSlices : nat) :=
-  let theta := HScDiv (HScMult duration term.(hScale)) (natToHSc nSlices) in
+  let theta := HScDiv (HScMult duration term.(hScale)) (natToHSc (2 * nSlices)) in
   match term.(hPaulis) with
   | [] => Some []
   | [HIdOp site p] =>
