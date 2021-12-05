@@ -59,7 +59,10 @@ Definition makeQT2 (p1 p2 : Pauli)
 
 Definition natToHSc (n : nat) := HScReal (INR n) (string_of_nat n).
 
-Definition sliceTerm (decls : list string) (duration : HScalar) (term : TIH_Term) (nSlices : nat) :=
+Definition sliceTerm (decls : list string)
+           (duration : HScalar)
+           (term : TIH_Term)
+           (nSlices : nat) : option (list QasmTerm) :=
   let theta := HScDiv (HScMult duration term.(hScale)) (natToHSc (2 * nSlices)) in
   match term.(hPaulis) with
   | [] => Some []
@@ -75,6 +78,31 @@ Definition sliceTerm (decls : list string) (duration : HScalar) (term : TIH_Term
       end
   | _ => None (* Too nonlocal *)
   end.
+
+Lemma sliceTermCorrect :
+  forall decls duration term nSlices,
+    sliceTerm decls duration term nSlices = None \/
+      exists q_insts sem Hi,
+        (sliceTerm decls duration term nSlices = Some q_insts /\
+           QasmInstsSemantics (length decls) q_insts sem /\
+           interpret_TIH_Term decls term = Some Hi /\
+           matrix_exponential (scale (- Ci * (sem_HScalar duration) / INR nSlices) Hi) sem).
+Proof.
+  intros.
+  destruct term.
+  destruct hPaulis as [| p1].
+  - (* Empty term; invalid AST? *)
+    admit.
+  - destruct hPaulis as [| p2].
+    + (* 1-local *)
+      admit.
+    + destruct hPaulis as [| p3].
+      * (* 2-local *)
+        admit.
+      * (* Too non-local *)
+        (* Disgusting. *)
+        admit.
+Admitted.
 
 Fixpoint sliceTerms (decls : list string)
          (duration : HScalar)
@@ -129,8 +157,12 @@ Definition trotterize (prog : H_Program) (nSlices : nat) :=
   end.
 
 Theorem trotterize_correct :
-  forall (hprog : H_Program), program_valid hprog -> (
-      (forall nSlices, (trotterize hprog nSlices).(successful) = false) (* Cannot Trotterize *) \/
+  forall (hprog : H_Program),
+    (program_valid hprog) ->
+    (* This is a crutch. *)
+    (* For now I don't want to deal with invalid programs or existence issues. *)
+    (exists sem : Square (dims hprog), sem_program hprog sem) ->
+      ((forall nSlices, (trotterize hprog nSlices).(successful) = false) (* Cannot Trotterize *) \/
       (forall nSlices, (trotterize hprog nSlices).(successful) = true (* Can Trotterize *) /\
         exists (correct_sem : Square (dims hprog)) (qasm_sem : nat -> (Square (dims hprog))),
           sem_program hprog correct_sem /\
@@ -166,18 +198,22 @@ Proof.
            Print dist_mats.
            Set Printing All.
            (* This is stupid *)
-           assert (@dist_mats (dims (makeHProg Decls []))
+           assert (distzero : @dist_mats (dims (makeHProg Decls []))
                   (I (2 ^ (length Decls)))
                   (I (2 ^ (length Decls))) = 0).
            Unset Printing All.
            apply dist_mats_refl.
            reflexivity.
-           rewrite H2.
+           rewrite distzero.
            auto.
-  + intros.
-    Print HSF_Term.
+  + intros decls valid exist_sem.
+    destruct exist_sem as [sem is_sem].
+    inversion is_sem; subst.
+    clear Hdims.
+    clear Hvalid.
+    specialize (IHTerms decls).
+    (* Disgusting. *)
     destruct a.
-    (* Disgusting *)
     Admitted.
 
 
