@@ -132,10 +132,10 @@ Theorem trotterize_correct :
   forall (hprog : H_Program),
       (forall nSlices, (trotterize hprog nSlices).(successful) = false) (* Cannot Trotterize *) \/
       (forall nSlices, (trotterize hprog nSlices).(successful) = true (* Can Trotterize *) /\
-        exists correct_sem,
+        exists (correct_sem : Square (dims hprog)) (qasm_sem : nat -> (Square (dims hprog))),
           sem_program hprog correct_sem /\
-          seq_conv (MatrixMetricSpace (dims hprog))
-            (fun nSlices => QasmSemantics (trotterize hprog nSlices).(output)) correct_sem
+          (forall nSlices, QasmSemantics (trotterize hprog nSlices).(output) (qasm_sem nSlices)) /\
+          seq_conv (MatrixMetricSpace (dims hprog)) qasm_sem correct_sem
       ).
 Proof.
     Admitted.

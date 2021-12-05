@@ -3,6 +3,9 @@ Require Import String.
 Require Import QWIRE.Matrix.
 Require Import DecimalString.
 Require Import HSF_Syntax.
+Require Import PauliRotations.
+Require Import MatrixExponential.
+Require Import Semantics.
 
 (* -- QASM AST -- *)
 
@@ -29,9 +32,55 @@ Record QasmProgram := makeQasmProg {
 }.
 
 (* -- QASM Semantics -- *)
-(* TODO *)
-Definition QasmSemantics (prog : QasmProgram) : Square (2 ^ (prog.(num_qubits))) :=
-  (* TODO *) Zero.
+
+Definition padIs (num_qubits : nat) (g : Square 2) (loc : nat) : Square (2 ^ num_qubits) :=
+  kron (kron (I (2 ^ loc)) g) (I (2 ^ (num_qubits - loc - 1))).
+
+Definition QasmInstSemantics (num_qubits : nat)
+           (inst : QasmTerm) (sem : Square (2 ^ num_qubits)) :=
+  match inst with
+  | QasmTerm1 gate loc =>
+      let u :=
+        match gate with
+        | Rx theta => RXGate (sem_HScalar theta)
+        | Ry theta => RYGate (sem_HScalar theta)
+        | Rz theta => RZGate (sem_HScalar theta)
+        | QasmH => HGate
+        | QasmU theta phi lambda => UGate (sem_HScalar theta) (sem_HScalar phi) (sem_HScalar lambda)
+        end
+      in
+      padIs num_qubits u loc = sem
+  | QasmTerm2 gate loc1 loc2 =>
+      let g :=
+        match gate with
+        | Rxx theta => XGate
+        | Rzz theta => ZGate
+        end
+      in
+      let t :=
+        match gate with
+        | Rxx theta => sem_HScalar theta
+        | Rzz theta => sem_HScalar theta
+        end
+      in
+      let p1 := padIs num_qubits g loc1 in
+      let p2 := padIs num_qubits g loc2 in
+      let tp1p2 := scale (- Ci * t / 2) (Mmult p1 p2) in
+      matrix_exponential tp1p2 sem
+  end.
+
+Fixpoint QasmInstsSemantics (num_qubits : nat)
+           (insts : list QasmTerm) (sem : Square (2 ^ num_qubits)) :=
+  match insts with
+  | head :: tail => exists sem_head sem_tail,
+      QasmInstSemantics num_qubits head sem_head /\
+        QasmInstsSemantics num_qubits tail sem_tail /\
+        sem = Mmult sem_head sem_tail
+  | [] => sem = I (2 ^ num_qubits)
+  end.
+
+Definition QasmSemantics (prog : QasmProgram) (sem : Square (2 ^ (prog.(num_qubits)))) :=
+  QasmInstsSemantics prog.(num_qubits) prog.(circuit) sem.
 
 (* -- QASM Printer -- *)
 
