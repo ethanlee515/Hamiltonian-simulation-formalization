@@ -129,13 +129,55 @@ Definition trotterize (prog : H_Program) (nSlices : nat) :=
   end.
 
 Theorem trotterize_correct :
-  forall (hprog : H_Program),
+  forall (hprog : H_Program), program_valid hprog -> (
       (forall nSlices, (trotterize hprog nSlices).(successful) = false) (* Cannot Trotterize *) \/
       (forall nSlices, (trotterize hprog nSlices).(successful) = true (* Can Trotterize *) /\
         exists (correct_sem : Square (dims hprog)) (qasm_sem : nat -> (Square (dims hprog))),
           sem_program hprog correct_sem /\
           (forall nSlices, QasmSemantics (trotterize hprog nSlices).(output) (qasm_sem nSlices)) /\
           seq_conv (MatrixMetricSpace (dims hprog)) qasm_sem correct_sem
-      ).
+      )).
 Proof.
+  intro hprog.
+  destruct hprog.
+  generalize dependent Decls.
+  induction Terms.
+  + intros.
+    right.
+    intros.
+    split.
+    - auto.
+    - exists (I (2 ^ (length Decls))).
+      exists (fun (_ : nat) => I (2 ^ (length Decls))).
+      split.
+      * apply sem_program_nil.
+        ** auto.
+        ** reflexivity.
+      * split.
+        ** intros.
+           unfold QasmSemantics.
+           simpl.
+           auto.
+        ** intro eps.
+           intros.
+           exists 1%nat.
+           intros.
+           simpl.
+           Print dist_mats.
+           Set Printing All.
+           (* This is stupid *)
+           assert (@dist_mats (dims (makeHProg Decls []))
+                  (I (2 ^ (length Decls)))
+                  (I (2 ^ (length Decls))) = 0).
+           Unset Printing All.
+           apply dist_mats_refl.
+           reflexivity.
+           rewrite H2.
+           auto.
+  + intros.
+    Print HSF_Term.
+    destruct a.
+    (* Disgusting *)
     Admitted.
+
+
