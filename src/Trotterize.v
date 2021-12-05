@@ -11,7 +11,6 @@ Definition find_qubit_opt (decls : list string) (site : string) : option nat :=
   let loc := find_qubit decls site in
   if Nat.eqb loc (List.length decls) then None else Some loc.
 
-
 Definition makeQT1 (p : Pauli) (theta : HScalar) (loc : nat) :=
   match p with
   | Pauli_I => []
@@ -20,8 +19,45 @@ Definition makeQT1 (p : Pauli) (theta : HScalar) (loc : nat) :=
   | Pauli_Z => [QasmTerm1 (Rz theta) loc]
   end.
 
-Definition makeQT2_opt (p1 p2 : Pauli) (theta : HScalar) (loc1 loc2 : nat) :=
-  (* TODO *) Some [QasmTerm2 (Rxx theta) loc1 loc2].
+Print HScalar.
+
+Definition HScPI := HScReal PI "pi".
+Definition HScPI2 := HScReal (PI / 2) "pi/2".
+Definition HScZero := HScReal 0 "0".
+
+Definition QasmTYZ := QasmU HScPI2 HScZero HScPI2.
+Definition QasmTYZ_dag := QasmU HScPI2 HScPI2 HScPI.
+
+Definition makeQT2 (p1 p2 : Pauli)
+           (theta : HScalar)
+           (loc1 loc2 : nat) : list QasmTerm :=
+  match (p1, p2) with
+  | (Pauli_I, _) => makeQT1 p2 theta loc2
+  | (_, Pauli_I) => makeQT1 p1 theta loc1
+  | (Pauli_X, Pauli_X) => [QasmTerm2 (Rxx theta) loc1 loc2]
+  | (Pauli_X, Pauli_Y) => [QasmTerm1 QasmH loc1; QasmTerm1 QasmTYZ loc2;
+                           QasmTerm2 (Rzz theta) loc1 loc2;
+                           QasmTerm1 QasmH loc1; QasmTerm1 QasmTYZ_dag loc2]
+  | (Pauli_X, Pauli_Z) => [QasmTerm1 QasmH loc1;
+                           QasmTerm2 (Rzz theta) loc1 loc2;
+                           QasmTerm1 QasmH loc1]
+  | (Pauli_Y, Pauli_X) => [QasmTerm1 QasmTYZ loc1; QasmTerm1 QasmH loc2;
+                           QasmTerm2 (Rzz theta) loc1 loc2;
+                           QasmTerm1 QasmTYZ_dag loc1; QasmTerm1 QasmH loc2]
+  | (Pauli_Y, Pauli_Y) => [QasmTerm1 QasmTYZ loc1; QasmTerm1 QasmTYZ loc2;
+                           QasmTerm2 (Rzz theta) loc1 loc2;
+                           QasmTerm1 QasmTYZ_dag loc1; QasmTerm1 QasmTYZ_dag loc2]
+  | (Pauli_Y, Pauli_Z) => [QasmTerm1 QasmTYZ loc1;
+                           QasmTerm2 (Rzz theta) loc1 loc2;
+                           QasmTerm1 QasmTYZ_dag loc1]
+  | (Pauli_Z, Pauli_X) => [QasmTerm1 QasmH loc2;
+                           QasmTerm2 (Rzz theta) loc1 loc2;
+                           QasmTerm1 QasmH loc2]
+  | (Pauli_Z, Pauli_Y) => [QasmTerm1 QasmTYZ loc2;
+                           QasmTerm2 (Rzz theta) loc1 loc2;
+                           QasmTerm1 QasmTYZ_dag loc2]
+  | (Pauli_Z, Pauli_Z) => [QasmTerm2 (Rzz theta) loc1 loc2]
+  end.
 
 Definition natToHSc (n : nat) := (* TODO *) HScReal R1 "1".
 
@@ -36,7 +72,7 @@ Definition sliceTerm (decls : list string) (duration : HScalar) (term : TIH_Term
       end
   | [HIdOp site1 p1; HIdOp site2 p2] =>
       match (find_qubit_opt decls site1, find_qubit_opt decls site2) with
-      | (Some loc1, Some loc2) => makeQT2_opt p1 p2 theta loc1 loc2
+      | (Some loc1, Some loc2) => if loc1 =? loc2 then None else Some (makeQT2 p1 p2 theta loc1 loc2)
       | _ => None
       end
   | _ => None (* Too nonlocal *)
@@ -54,8 +90,6 @@ Fixpoint sliceTerms (decls : list string)
       end
   | [] => Some []
   end.
-
-Print HSF_Term.
 
 Definition sliceInst (decls : list string) (inst : HSF_Term) (nSlices : nat) :=
   sliceTerms decls inst.(Duration) inst.(Hamiltonian) nSlices.

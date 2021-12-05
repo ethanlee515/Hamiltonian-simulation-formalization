@@ -5,16 +5,20 @@ Require Import DecimalString.
 Require Import HSF_Syntax.
 
 Inductive QasmGate1 :=
-  | Rx (theta : HScalar)
-  | Ry (theta : HScalar)
-  | Rz (theta : HScalar).
+| Rx (theta : HScalar)
+| Ry (theta : HScalar)
+| Rz (theta : HScalar)
+| QasmH
+| QasmU (theta phi lambda : HScalar).
 
 (* TODO *)
 Definition printQasmGate1 (g : QasmGate1) : string :=
     match g with
     | Rx theta => "rx(theta)"
-    | Ry theta => "ry(theta)"
-    | Rz theta => "rz(theta)"
+    | Ry theta => "ry(TODO)"
+    | Rz theta => "rz(TODO)"
+    | QasmH => "h"
+    | QasmU theta phi lambda => "u(TODO)"
     end.
 
 Inductive QasmGate2 :=
@@ -75,3 +79,4 @@ Definition print_qasm_program (prog : QasmProgram) : string :=
 
 Definition interpretQasm (prog : QasmProgram) :=
     (* TODO *) I (prog.(num_qubits)).
+
