@@ -90,3 +90,34 @@ Definition mat_infinite_sum {dim : nat} (seq : nat -> Square dim) (result : Squa
 
 Definition matrix_exponential {n : nat} (M Mexp : Square n) :=
     mat_infinite_sum (fun k => scale (/ (INR (fact k))) (Mmult_n k M) ) Mexp.
+
+(* -- e^((A + B)) == 1/dt e^(A dt) e^(B dt) *)
+
+Fixpoint mat_finite_sum {dim : nat} (Ms : list (Square dim)) : Square dim :=
+  match Ms with
+  | head :: tail => Mplus head (mat_finite_sum tail)
+  | [] => Zero
+  end.
+
+Fixpoint mat_finite_prod {dim : nat} (Ms : list (Square dim)) : Square dim :=
+  match Ms with
+  | head :: tail => Mmult head (mat_finite_prod tail)
+  | [] => I dim
+  end.
+
+Definition matexp_approx {dim : nat} (Ms : list (Square dim)) :
+  let sumMs := mat_finite_sum Ms in
+  forall (exp_sumMs : Square dim) (expMdt : nat -> list (Square dim)),
+    matrix_exponential sumMs exp_sumMs -> (
+    forall (i invDt : nat),
+      (0 <= i)%nat ->
+      (i < List.length Ms)%nat ->
+      matrix_exponential (scale (/ INR invDt) (nth i Ms Zero)) (nth i (expMdt invDt) Zero)
+    ) ->
+    seq_conv (MatrixMetricSpace dim)
+      (fun nSlices => mat_finite_prod (expMdt nSlices))
+      exp_sumMs.
+Proof.
+  intros.
+  (* Disgusting. *)
+Admitted.
