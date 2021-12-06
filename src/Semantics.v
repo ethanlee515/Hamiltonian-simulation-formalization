@@ -28,45 +28,52 @@ Definition count_sites (prog : H_Program) := List.length (prog.(Decls)).
 (* this works for qubits, not sure about fock spaces... *)
 Definition dims (P : H_Program) : nat := 2 ^ (count_sites P).
 
-Fixpoint find_qubit (decls : list string) (label : string) : nat :=
-    match decls with
-    | [] => 0
-    | head :: tail => if String.eqb head label then 0 else 1 + find_qubit tail label
-    end.
 
+Fixpoint declsToMats (decls : list string) (label : string) (p : Pauli) : list (Square 2) :=
+  match decls with
+  | [] => []
+  | d :: decls' =>
+    (if String.eqb d label then PauliToMatrix p else I 2) :: (declsToMats decls' label p)
+  end.
 
-Definition interpret_HPauli (decls : list string) (p : HPauli)
-        : option (Square (2 ^ (List.length decls))%nat) :=
-    match p with HIdOp label pauli =>
-        let num_qubits := List.length decls in
-        let loc := find_qubit decls label in
-        if loc <? List.length decls then
-            Some (kron (kron (I (2 ^ loc)) (PauliToMatrix pauli)) (I (2 ^ (num_qubits - loc - 1))))
-        else
-            None
-    end.
+Fixpoint interpret_HPauli_helper (decls : list string) (label : string) (p : Pauli) :=
+  big_kron (declsToMats decls label p).
 
-Fixpoint interpret_HPaulis (decls : list string) (ps : list HPauli)
-        : option (Square (2 ^ (List.length decls))%nat) :=
+Fixpoint In_bool (x : string) (L : list string) : bool :=
+  match L with
+  | [] => false
+  | y :: L' => orb (String.eqb x y) (In_bool x L')
+  end.
+
+Definition interpret_HPauli {n : nat} (decls : list string) (p : HPauli)
+  : option (Square n) :=
+  match p with HIdOp label pauli =>
+               if In_bool label decls
+               then Some (interpret_HPauli_helper decls label pauli)
+               else None
+  end.
+
+Fixpoint interpret_HPaulis {n : nat} (decls : list string) (ps : list HPauli)
+        : option (Square n) :=
     match ps with
     | head :: tail =>
         match (interpret_HPauli decls head, interpret_HPaulis decls tail) with
         | (Some m1, Some m2) => Some (Mmult m1 m2)
         | _ => None
         end
-    | [] => Some (I (2 ^ (List.length decls))%nat)
+    | [] => Some (I n)
     end.
-        
-Definition interpret_TIH_Term (decls : list string) (s : TIH_Term)
-        : option (Square (2 ^ (List.length decls))%nat) :=
+
+Definition interpret_TIH_Term {n : nat} (decls : list string) (s : TIH_Term)
+        : option (Square n) :=
     let sc_v := sem_HScalar s.(hScale) in
     match interpret_HPaulis decls s.(hPaulis) with
     | Some pauli_v => Some (scale sc_v pauli_v)
     | None => None
     end.
 
-Fixpoint interpret_TIH_Terms (decls : list string) (ss : list TIH_Term)
-        : option (Square (2 ^ (List.length decls))%nat) :=
+Fixpoint interpret_TIH_Terms {n : nat} (decls : list string) (ss : list TIH_Term)
+        : option (Square n) :=
     match ss with
     | head :: tail =>
         match (interpret_TIH_Term decls head, interpret_TIH_Terms decls tail) with
@@ -128,24 +135,6 @@ Definition ham_commute (P : H_Program) (T1 T2 : HSF_Term) : Prop :=
 
 
 (* 
-   Misc. Lemmas
- *)
-
-Lemma mat_eq_equiv {n m : nat} : forall (A : Square n) (B : Square m),
-    A = B -> A == B.
-Proof.
-  intros. rewrite H.
-  unfold "≡". intros. reflexivity.
-Qed.
-
-Lemma obvious_lemma {n m : nat} : forall (A : Square n) (B : Square m),
-    A = B -> n = m.
-Proof. Admitted.
-
-
-
-
-(* 
    Lemmas about terms and programs
  *)
 
@@ -197,16 +186,117 @@ Qed.
 
 (* 
     Lemmas about term interpretation
-*)
+ *)
 
-Lemma interpret_TIH_Term_WF :
-  forall (decls : list string) (s : TIH_Term) (M : Square (2 ^ (List.length decls))%nat),
-    interpret_TIH_Term decls s = Some M -> WF_Matrix M.
+(*
+Lemma interpret_HPauli_helper_take1_WF {n : nat} :
+  forall (decls : list string) (label : string) (p : Pauli) (M : Square n),
+    n = (2 ^ (List.length decls))%nat -> In label decls ->
+    interpret_HPauli_helper decls label p = M -> WF_Matrix M.
+Proof.
+  intros decls. generalize dependent n.
+  induction decls as [|site decls']; intros.
+  - simpl in *. contradiction.
+  - simpl in *. remember (interpret_HPauli_helper decls' label p) as M'.
+    assert (H2 : M' × I (fst (Nat.divmod n 1 0 1)) = M'). { admit. }
+    rewrite <- H1. rewrite H2.
+    eapply WF_kron.
+    + admit. (* n = 2 * (n/2), should be provable but who knows *)
+    + admit. (* same thing *)
+    + admit. (* PauliToMatrix p is well-formed, should be provable *)
+    + eapply IHdecls'.
+      * admit. (* should follow from proof of first "+" *)
+      *
+      *)
+
+Lemma PauliToMatrix_WF : forall (p : Pauli), WF_Matrix (PauliToMatrix p).
 Proof. Admitted.
 
+Lemma declsToMat_pauli_or_I : forall x d l p,
+    In x (declsToMats d l p) -> x = PauliToMatrix p \/ x = I 2.
+Proof.
+  intros x d. generalize dependent x. induction d as [|y d'].
+  - intros. contradiction.
+  - intros. apply in_inv in H. destruct H.
+    + destruct (y =? l)%string.
+      * left. auto.
+      * right. auto. 
+    + apply IHd' in H. assumption. 
+Qed.  
+
+Lemma interpret_HPauli_helper_WF :
+  forall (decls : list string) (label : string) (p : Pauli),
+    WF_Matrix (interpret_HPauli_helper decls label p).
+Proof.
+  intros.
+  unfold interpret_HPauli_helper.
+  destruct decls. apply WF_I.
+  apply WF_big_kron with (I 2).
+  intros i. destruct (blt_reflect i (List.length (declsToMats (s :: decls) label p))). 
+  - eapply nth_In in l. apply declsToMat_pauli_or_I in l.
+    destruct l.
+    + rewrite H. apply PauliToMatrix_WF.
+    + rewrite H. apply WF_I.
+  - apply Nat.nlt_ge in n.
+    eapply nth_overflow in n.
+    rewrite n. apply WF_I.
+Qed.
+
+Lemma interpret_HPauli_WF :
+  forall (decls : list string) (p : HPauli) (M : Square (2 ^ List.length decls)),
+    interpret_HPauli decls p = Some M -> WF_Matrix M.
+Proof.
+  intros. destruct p eqn:Ep. unfold interpret_HPauli in H.
+  destruct (In_bool loc decls) eqn:Ein; try discriminate.
+  inversion H. clear H.
+  assert (Hsize_eq : forall d l p', List.length d = List.length (declsToMats d l p')). {
+    intros d. induction d as [|x d'].
+    - intros. auto.
+    - intros. simpl. apply f_equal. apply IHd'.
+  }
+  assert (Hdecls_length : (0 < List.length decls)%nat). {
+    clear Hsize_eq H1 Ep p0 M p. apply neq_0_lt. intros contra.
+    induction decls; discriminate.
+  } 
+  assert (Hsize_eq2 :
+             (2^List.length decls = 2^List.length (declsToMats decls loc p0))%nat). {
+    remember (Hsize_eq decls loc p0) as E. rewrite E.
+    apply Nat.pow_inj_l with (List.length decls); auto.
+    intros contra. apply lt_0_neq in Hdecls_length. symmetry in contra. contradiction.
+  }
+  unfold WF_Matrix. rewrite Hsize_eq2.
+  apply interpret_HPauli_helper_WF.
+Qed.
+  
+Lemma interpret_HPaulis_WF :
+  forall (decls : list string) (ps : list HPauli) (M : Square (2 ^ List.length decls)),
+    interpret_HPaulis decls ps = Some M -> WF_Matrix M.
+Proof.
+  intros decls ps. generalize dependent decls.
+  induction ps as [|p ps']; intros.
+  - inversion H. apply WF_I.
+  - inversion H.
+    destruct (interpret_HPauli decls p) eqn:E1; try discriminate.
+    destruct (interpret_HPaulis decls ps') eqn:E2; try discriminate.
+    inversion H1. apply WF_mult.
+    + eapply interpret_HPauli_WF. apply E1.
+    + eapply IHps'. apply E2.
+Qed.
+  
+Lemma interpret_TIH_Term_WF :
+  forall (decls : list string) (s : TIH_Term) (M : Square (2 ^ List.length decls)),
+    interpret_TIH_Term decls s = Some M -> WF_Matrix M.
+Proof.
+  intros. unfold interpret_TIH_Term in H.
+  destruct (interpret_HPaulis decls (hPaulis s)) eqn:E; try discriminate.
+  inversion H.
+  apply interpret_HPaulis_WF in E.
+  apply WF_scale. assumption.
+Qed.
+  
 Lemma interpret_TIH_Terms_WF : 
-  forall (decls : list string) (ss : list TIH_Term) (M : Square (2 ^ (List.length decls))%nat),
-    interpret_TIH_Terms decls ss = (Some M) -> WF_Matrix M.
+  forall (decls : list string) (ss : list TIH_Term) (M : Square (2 ^ List.length decls)),
+    interpret_TIH_Terms decls ss = Some M -> WF_Matrix M.
 Proof.
   intros decls ss. generalize dependent decls. induction ss as [|t T].
   - intros. inversion H. apply WF_Zero.
@@ -217,22 +307,15 @@ Proof.
         -- assumption.
       * discriminate.
     + discriminate.
-Qed.
+Qed. 
 
-Lemma interpret_term_WF {n : nat} :
-  forall (P : H_Program) (T : HSF_Term) (M : Square n),
+Lemma interpret_term_WF :
+  forall (P : H_Program) (T : HSF_Term) (M : Square (dims P)),
     interpret_term P T = Some M -> WF_Matrix M.
 Proof.
-  intros P T M Hit. remember (2 ^ (List.length (Decls P)))%nat as m.
-  assert (Hmn : n = m). {
-    destruct (interpret_term P T).
-    - inversion Hit. apply obvious_lemma in H0.
-      unfold dims in H0. unfold count_sites in H0.
-      subst. reflexivity.
-    - inversion Hit.
-  }
-  assert (Hdims : dims P = (2 ^ Datatypes.length (Decls P))%nat). reflexivity.    
-  subst. apply interpret_TIH_Terms_WF with (Hamiltonian T).
+  intros P T M Hit.
+  apply interpret_TIH_Terms_WF with (ss := Hamiltonian T) (decls := Decls P).
+  unfold dims in M. unfold count_sites in M.
   unfold interpret_term in Hit. assumption.
 Qed.
   
@@ -293,7 +376,6 @@ Proof.
   - exfalso. unfold ham_commute in H.
     rewrite E1 in H. auto.
 Qed.
-
 
 Lemma ham_commute_term_semantics {n : nat} :
   forall (P : H_Program) (H1 H2 : HSF_Term) (S1 S2 : Square n),
@@ -386,30 +468,33 @@ Qed.
   
 (* The semantics of a term depend only on the declarations of the program 
    (not on the Hamiltonian terms) *)
-Lemma sem_term_depends_on_D {n : nat} : forall P1 P2 H (S : Square n),
+Lemma sem_term_depends_on_D : forall P1 P2 H (S : Square (dims P1)),
     sem_term P1 H S -> Decls P1 = Decls P2 -> sem_term P2 H S.
 Proof.
   intros P1 P2 H S Ht Hd. unfold sem_term in Ht.
   destruct (interpret_term P1 H) eqn:E.
   - inversion Ht. clear Ht.
-     unfold sem_term. assert (H2 : interpret_term P2 H = Some m). {
-      subst. rewrite <- E. unfold interpret_term. rewrite Hd. reflexivity. }
-     assert (H3 : dims P1 = dims P2). {
-       unfold dims. unfold count_sites. rewrite Hd. reflexivity. }
+    unfold sem_term.
+    assert (Hdims : dims P1 = dims P2). {
+      unfold dims. unfold count_sites. rewrite Hd. reflexivity.
+    }
+    assert (H2 : interpret_term P2 H = Some m). {
+      subst. rewrite <- E. unfold interpret_term. rewrite Hd. rewrite Hdims. reflexivity.
+    }
     rewrite H2. split.
     + symmetry. subst. assumption.
-    + rewrite <- H3. assumption.
+    + rewrite <- Hdims. assumption.
   - contradiction.
 Qed.
 
-Lemma two_term_program_semantics {n : nat} :
-  forall (P : H_Program) (H1 H2 : HSF_Term) (St1 St2 SP : Square n),
+Lemma two_term_program_semantics :
+  forall (P : H_Program) (H1 H2 : HSF_Term) (St1 St2 SP : Square (dims P)),
     sem_term P H1 St1 -> sem_term P H2 St2 ->
     sem_program {| Decls := P.(Decls); Terms := [H2; H1] |} SP ->
     SP = St2 × St1.
 Proof.
   intros P H1 H2 St1 St2 SP HSt1 HSt2 HP.
-  assert (HP' : sem_program {| Decls := Decls P; Terms := [H1] |} (St1 × I n)). {
+  assert (HP' : sem_program {| Decls := Decls P; Terms := [H1] |} (St1 × I (dims P))). {
     apply sem_program_cons.
     - eapply sem_term_depends_on_D.
       + apply HSt1.
@@ -427,7 +512,9 @@ Proof.
     - apply extract_dims in HP. unfold dims in *. unfold count_sites in *.
       simpl in *. assumption.
   }
-  assert (HP'' : sem_program {| Decls := Decls P; Terms := [H2; H1] |} (St2 × (St1 × I n))). {
+  assert (HP'' : sem_program {| Decls := Decls P; Terms := [H2; H1] |}
+                             (St2 × (St1 × I (dims P)))).
+  {
     apply sem_program_cons.
     - eapply sem_term_depends_on_D.
       + apply HSt2.
@@ -437,7 +524,7 @@ Proof.
     - apply extract_dims in HP'. unfold dims in *. unfold count_sites in *.
       simpl in *. assumption.
   }
-  assert (HMmultI : St1 × I n = St1). {
+  assert (HMmultI : St1 × I (dims P) = St1). {
     apply Mmult_1_r. apply term_semantics_WF in HSt1. assumption.
   }
   rewrite HMmultI in HP''. eapply prog_semantics_unique.
@@ -453,8 +540,8 @@ Qed.
 
 
 (* Commuting Hamiltonians have the same semantics *)
-Theorem commuting_Ham_semantics {n : nat} (H1 H2 : HSF_Term) :
-  forall (P : H_Program) (D : list string) (St1 St2 SP1 SP2 : Square n),
+Theorem commuting_Ham_semantics (H1 H2 : HSF_Term) :
+  forall (P : H_Program) (D : list string) (St1 St2 SP1 SP2 : Square (dims P)),
     D = P.(Decls) ->
     sem_term P H1 St1 -> sem_term P H2 St2 ->
     sem_program (makeHProg D [H2; H1]) SP1 -> sem_program (makeHProg D [H1; H2]) SP2 ->
