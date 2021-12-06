@@ -7,6 +7,12 @@ Require Import Semantics.
 Require Import PauliRotations.
 Require Import MatrixExponential.
 
+Fixpoint find_qubit (decls : list string) (label : string) : nat :=
+     match decls with
+     | [] => 0
+     | head :: tail => if String.eqb head label then 0 else 1 + find_qubit tail label
+     end.
+
 Definition find_qubit_opt (decls : list string) (site : string) : option nat :=
   let loc := find_qubit decls site in
   if Nat.eqb loc (List.length decls) then None else Some loc.

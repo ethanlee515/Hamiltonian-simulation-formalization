@@ -36,7 +36,7 @@ Fixpoint declsToMats (decls : list string) (label : string) (p : Pauli) : list (
     (if String.eqb d label then PauliToMatrix p else I 2) :: (declsToMats decls' label p)
   end.
 
-Fixpoint interpret_HPauli_helper (decls : list string) (label : string) (p : Pauli) :=
+Definition interpret_HPauli_helper (decls : list string) (label : string) (p : Pauli) :=
   big_kron (declsToMats decls label p).
 
 Fixpoint In_bool (x : string) (L : list string) : bool :=
@@ -188,27 +188,6 @@ Qed.
     Lemmas about term interpretation
  *)
 
-(*
-Lemma interpret_HPauli_helper_take1_WF {n : nat} :
-  forall (decls : list string) (label : string) (p : Pauli) (M : Square n),
-    n = (2 ^ (List.length decls))%nat -> In label decls ->
-    interpret_HPauli_helper decls label p = M -> WF_Matrix M.
-Proof.
-  intros decls. generalize dependent n.
-  induction decls as [|site decls']; intros.
-  - simpl in *. contradiction.
-  - simpl in *. remember (interpret_HPauli_helper decls' label p) as M'.
-    assert (H2 : M' × I (fst (Nat.divmod n 1 0 1)) = M'). { admit. }
-    rewrite <- H1. rewrite H2.
-    eapply WF_kron.
-    + admit. (* n = 2 * (n/2), should be provable but who knows *)
-    + admit. (* same thing *)
-    + admit. (* PauliToMatrix p is well-formed, should be provable *)
-    + eapply IHdecls'.
-      * admit. (* should follow from proof of first "+" *)
-      *
-      *)
-
 Lemma PauliToMatrix_WF : forall (p : Pauli), WF_Matrix (PauliToMatrix p).
 Proof. Admitted.
 
@@ -267,7 +246,7 @@ Proof.
   unfold WF_Matrix. rewrite Hsize_eq2.
   apply interpret_HPauli_helper_WF.
 Qed.
-  
+
 Lemma interpret_HPaulis_WF :
   forall (decls : list string) (ps : list HPauli) (M : Square (2 ^ List.length decls)),
     interpret_HPaulis decls ps = Some M -> WF_Matrix M.
@@ -282,7 +261,7 @@ Proof.
     + eapply interpret_HPauli_WF. apply E1.
     + eapply IHps'. apply E2.
 Qed.
-  
+
 Lemma interpret_TIH_Term_WF :
   forall (decls : list string) (s : TIH_Term) (M : Square (2 ^ List.length decls)),
     interpret_TIH_Term decls s = Some M -> WF_Matrix M.
@@ -293,7 +272,7 @@ Proof.
   apply interpret_HPaulis_WF in E.
   apply WF_scale. assumption.
 Qed.
-  
+
 Lemma interpret_TIH_Terms_WF : 
   forall (decls : list string) (ss : list TIH_Term) (M : Square (2 ^ List.length decls)),
     interpret_TIH_Terms decls ss = Some M -> WF_Matrix M.
@@ -318,9 +297,9 @@ Proof.
   unfold dims in M. unfold count_sites in M.
   unfold interpret_term in Hit. assumption.
 Qed.
-  
 
-  
+
+
 (* ********************** *)
 (* Lemmas that should probably be somewhere else *)
 
@@ -558,11 +537,7 @@ Proof.
   - subst. apply (two_term_program_semantics P H2 H1 St2 St1 SP2); assumption.
 Qed.
 
-Theorem valid_programs_have_semantics (hprog : H_Program) :
-  exists (sem : Square (dims hprog)),
-    sem_program hprog sem.
-Proof.
-  Admitted.
+
 
 (* This theorem statement is not correct,
    but would we want something like this?
@@ -572,4 +547,13 @@ Theorem sem_program_correct :
     sem_program P S <->
     matrix_exponential (interpret_term n (snd P)) S.
     (* not sure how hard this would be to prove *)
+*)
+
+
+(*
+Theorem valid_programs_have_semantics (hprog : H_Program) :
+  exists (sem : Square (dims hprog)),
+    sem_program hprog sem.
+Proof.
+  Admitted.
 *)
