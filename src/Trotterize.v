@@ -7,16 +7,6 @@ Require Import Semantics.
 Require Import PauliRotations.
 Require Import MatrixExponential.
 
-Fixpoint find_qubit (decls : list string) (label : string) : nat :=
-     match decls with
-     | [] => 0
-     | head :: tail => if String.eqb head label then 0 else 1 + find_qubit tail label
-     end.
-
-Definition find_qubit_opt (decls : list string) (site : string) : option nat :=
-  let loc := find_qubit decls site in
-  if Nat.eqb loc (List.length decls) then None else Some loc.
-
 Definition makeQT1 (p : Pauli) (theta : HScalar) (loc : nat) :=
   match p with
   | Pauli_I => []
@@ -73,12 +63,12 @@ Definition sliceTerm (decls : list string)
   match term.(hPaulis) with
   | [] => Some []
   | [HIdOp site p] =>
-      match find_qubit_opt decls site with
+      match find_qubit decls site with
       | None => None
       | Some loc => Some (makeQT1 p theta loc)
       end
   | [HIdOp site1 p1; HIdOp site2 p2] =>
-      match (find_qubit_opt decls site1, find_qubit_opt decls site2) with
+      match (find_qubit decls site1, find_qubit decls site2) with
       | (Some loc1, Some loc2) => if loc1 =? loc2 then None else Some (makeQT2 p1 p2 theta loc1 loc2)
       | _ => None
       end

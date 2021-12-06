@@ -32,10 +32,6 @@ Record QasmProgram := makeQasmProg {
 }.
 
 (* -- QASM Semantics -- *)
-
-Definition padIs (num_qubits : nat) (g : Square 2) (loc : nat) : Square (2 ^ num_qubits) :=
-  kron (kron (I (2 ^ loc)) g) (I (2 ^ (num_qubits - loc - 1))).
-
 Definition QasmInstSemantics (num_qubits : nat)
            (inst : QasmTerm) (sem : Square (2 ^ num_qubits)) :=
   match inst with

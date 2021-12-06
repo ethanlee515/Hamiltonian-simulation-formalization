@@ -53,6 +53,42 @@ Definition interpret_HPauli {n : nat} (decls : list string) (p : HPauli)
                else None
   end.
 
+(* Alternative implementation of interpret_HPauli *)
+(* The above one is cleaner, but we also need this one for Trotterization *)
+
+Fixpoint find_qubit (decls : list string) (label : string) : option nat :=
+  match decls with
+  | [] => None
+  | head :: tail =>
+      if String.eqb head label
+      then
+        Some O
+      else
+        match find_qubit tail label with
+        | Some loc => Some (S loc)
+        | None => None
+        end
+  end.
+
+Definition padIs (num_qubits : nat) (g : Square 2) (loc : nat) : Square (2 ^ num_qubits) :=
+  kron (kron (I (2 ^ loc)) g) (I (2 ^ (num_qubits - loc - 1))).
+
+Definition interpret_HPauli' (decls : list string) (p : HPauli)
+  : option (Square (2 ^ List.length decls)) :=
+  let num_qubits := List.length decls in
+  match p with HIdOp label pauli =>
+    match find_qubit decls label with
+      | Some loc => Some (kron (kron (I (2 ^ loc)) (PauliToMatrix pauli)) (I (2 ^ (num_qubits - loc - 1))))
+      | None => None
+    end               
+  end.
+
+Lemma interpret_HPauli'_correct :
+  forall decls hp,
+    interpret_HPauli' decls hp = interpret_HPauli decls hp.
+Proof.
+  Admitted.
+
 Fixpoint interpret_HPaulis {n : nat} (decls : list string) (ps : list HPauli)
         : option (Square n) :=
     match ps with
