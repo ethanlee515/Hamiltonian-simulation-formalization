@@ -30,6 +30,20 @@ Definition ZGate : Square 2 := fun (i j : nat) =>
     | _ => RtoC 0
     end.
 
+Definition HGate : Square 2 := fun (i j : nat) =>
+  match (i, j) with
+  | (0, 0) => / sqrt 2
+  | (0, 1) => / sqrt 2
+  | (1, 0) => / sqrt 2
+  | (1, 1) => - / sqrt 2
+  | _ => 0
+  end.
+
+Lemma XGateDiagonalization :
+  Diagonalization XGate HGate ZGate HGate.
+Proof.
+  Admitted.
+
 Definition PauliToMatrix (p : Pauli) : Square 2 :=
     match p with
     | Pauli_I => I 2
@@ -115,4 +129,3 @@ Lemma TYZ_correct :
   Diagonalization YGate TYZ_Gate_dag ZGate TYZ_Gate.
 Proof.
 Admitted.
-

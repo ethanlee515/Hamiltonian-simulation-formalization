@@ -558,11 +558,11 @@ Proof.
   - subst. apply (two_term_program_semantics P H2 H1 St2 St1 SP2); assumption.
 Qed.
 
-
-
-
-
-
+Theorem valid_programs_have_semantics (hprog : H_Program) :
+  exists (sem : Square (dims hprog)),
+    sem_program hprog sem.
+Proof.
+  Admitted.
 
 (* This theorem statement is not correct,
    but would we want something like this?
