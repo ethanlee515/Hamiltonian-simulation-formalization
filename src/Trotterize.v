@@ -79,14 +79,6 @@ Definition sliceTerm (decls : list string)
   | _ => None (* Too nonlocal *)
   end.
 
-(* TODO move to mexp file *)
-Lemma mexp_scale :
-  forall (dim : nat) (A expA : Square dim) (sc : R),
-    matrix_exponential A expA ->
-    matrix_exponential (scale (Ci * sc) A) (scale (Cexp sc) expA).
-Proof.
-Admitted.
-
 Lemma sliceTermCorrect :
   forall decls duration term nSlices,
     sliceTerm decls duration term nSlices = None \/

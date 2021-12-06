@@ -91,7 +91,16 @@ Definition mat_infinite_sum {dim : nat} (seq : nat -> Square dim) (result : Squa
 Definition matrix_exponential {n : nat} (M Mexp : Square n) :=
     mat_infinite_sum (fun k => scale (/ (INR (fact k))) (Mmult_n k M) ) Mexp.
 
-(* -- e^((A + B)) == 1/dt e^(A dt) e^(B dt) *)
+(* -- Facts on matrix exponential -- *)
+
+Lemma mexp_scale :
+  forall (dim : nat) (A expA : Square dim) (sc : R),
+    matrix_exponential A expA ->
+    matrix_exponential (scale (Ci * sc) A) (scale (Cexp sc) expA).
+Proof.
+Admitted.
+
+(* e^((A + B)) == 1/dt e^(A dt) e^(B dt) *)
 
 Fixpoint mat_finite_sum {dim : nat} (Ms : list (Square dim)) : Square dim :=
   match Ms with
