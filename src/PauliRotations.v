@@ -129,3 +129,33 @@ Lemma TYZ_correct :
   Diagonalization YGate TYZ_Gate_dag ZGate TYZ_Gate.
 Proof.
 Admitted.
+
+Lemma PauliToMatrix_WF : forall (p : Pauli), WF_Matrix (PauliToMatrix p).
+Proof.
+  intros p. destruct p; simpl.
+  - apply WF_I.
+  - unfold WF_Matrix. intros.
+    unfold XGate. destruct x.
+    + destruct H.
+      * lia.
+      * destruct y; auto. destruct y; auto. lia.
+    + destruct x; auto. destruct H.
+      * lia.
+      * destruct y; auto. lia.
+  - unfold WF_Matrix. intros.
+    unfold YGate. destruct x.
+    + destruct H.
+      * lia.
+      * destruct y; auto. destruct y; auto. lia.
+    + destruct x; auto. destruct H.
+      * lia.
+      * destruct y; auto. lia.
+  - unfold WF_Matrix. intros.
+    unfold ZGate. destruct x.
+    + destruct H.
+      * lia.
+      * destruct y; auto. destruct y; auto. lia.
+    + destruct x; auto. destruct H.
+      * lia.
+      * destruct y; auto. lia.
+Qed.

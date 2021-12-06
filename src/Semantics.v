@@ -188,9 +188,6 @@ Qed.
     Lemmas about term interpretation
  *)
 
-Lemma PauliToMatrix_WF : forall (p : Pauli), WF_Matrix (PauliToMatrix p).
-Proof. Admitted.
-
 Lemma declsToMat_pauli_or_I : forall x d l p,
     In x (declsToMats d l p) -> x = PauliToMatrix p \/ x = I 2.
 Proof.
