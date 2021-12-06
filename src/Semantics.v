@@ -297,41 +297,6 @@ Qed.
 
 
 
-(* ********************** *)
-(* Lemmas that should probably be somewhere else *)
-
-(* This probably belongs in MatrixExponential.v *)
-Lemma mat_exp_equiv_scalar {n : nat} : forall (c : R) (M S Sc SM : Square n),
-    matrix_exponential (scale c M) S ->
-    matrix_exponential M SM ->
-    S = scale (exp c) SM.
-Proof. Admitted.
-
-(* This probably belongs in MatrixExponential.v too *)
-Lemma mat_exp_commute_add {n : nat} : forall (M N SM SN SMN : Square n),
-    matrix_exponential M SM ->
-    matrix_exponential N SN ->
-    matrix_exponential (M .+ N) SMN ->
-    Mat_commute M N ->
-    SM × SN = SMN.
-Proof. Admitted.
-
-(* This lemma is true, but I'm not sure how to prove it yet *)
-Lemma mat_exp_well_defined {n : nat} : forall (M : Square n),
-    exists (Mexp : Square n), matrix_exponential M Mexp.
-Proof. Admitted.
-
-Lemma mat_exp_unique {n : nat} : forall (M Mexp1 Mexp2 : Square n),
-    matrix_exponential M Mexp1 -> matrix_exponential M Mexp2 -> Mexp1 = Mexp2.
-Proof. Admitted.
-
-Lemma mat_exp_WF {n : nat} : forall (M Mexp : Square n),
-    matrix_exponential M Mexp -> WF_Matrix M -> WF_Matrix Mexp.
-Proof. Admitted.
-
-(* ********************** *) 
-
-
 
 (*
     Lemmas about commuting

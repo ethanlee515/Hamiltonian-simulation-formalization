@@ -103,3 +103,18 @@ Theorem Commute_sim_diag {n : nat} :
 Proof.
   (* This is gonna be a doozy *)
   Admitted.
+
+
+
+
+
+
+Lemma mat_exp_commute_add {n : nat} : forall (M N SM SN SMN : Square n),
+    matrix_exponential M SM ->
+    matrix_exponential N SN ->
+    matrix_exponential (M .+ N) SMN ->
+    Mat_commute M N ->
+    SM × SN = SMN.
+Proof. Admitted.
+
+
