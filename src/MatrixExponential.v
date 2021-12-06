@@ -130,3 +130,34 @@ Proof.
   intros.
   (* Disgusting. *)
 Admitted.
+
+
+
+
+(*
+     *** Some lemmas needed by Semantics.v ***
+ *)
+
+
+(* This lemma is true, but may be difficult to prove *)
+Lemma mat_exp_well_defined {n : nat} : forall (M : Square n),
+    exists (Mexp : Square n), matrix_exponential M Mexp.
+Proof. Admitted.
+
+Lemma seq_conv_unique : forall X seq n1 n2,
+  seq_conv X seq n1 -> seq_conv X seq n2 -> n1 = n2.
+Proof. Admitted. Print seq_conv_unique.
+
+Lemma mat_exp_unique {n : nat} : forall (M Mexp1 Mexp2 : Square n),
+    matrix_exponential M Mexp1 -> matrix_exponential M Mexp2 -> Mexp1 = Mexp2.
+Proof.
+  intros M M1 M2 H1 H2.
+  unfold matrix_exponential in *. unfold mat_infinite_sum in *. Locate Metric_Space.
+  (* eapply seq_conv_unique. <-- This command fails. *)
+Admitted.
+
+  
+
+Lemma mat_exp_WF {n : nat} : forall (M Mexp : Square n),
+    matrix_exponential M Mexp -> WF_Matrix M -> WF_Matrix Mexp.
+Proof. Admitted.
