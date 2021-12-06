@@ -49,7 +49,8 @@ Definition QasmInstSemantics (num_qubits : nat)
         | QasmU theta phi lambda => UGate (sem_HScalar theta) (sem_HScalar phi) (sem_HScalar lambda)
         end
       in
-      padIs num_qubits u loc = sem
+      exists global_phase,
+      padIs num_qubits u loc = scale global_phase sem
   | QasmTerm2 gate loc1 loc2 =>
       let g :=
         match gate with
@@ -66,17 +67,18 @@ Definition QasmInstSemantics (num_qubits : nat)
       let p1 := padIs num_qubits g loc1 in
       let p2 := padIs num_qubits g loc2 in
       let tp1p2 := scale (- Ci * t / 2) (Mmult p1 p2) in
-      matrix_exponential tp1p2 sem
+      exists global_phase,
+      matrix_exponential tp1p2 (scale global_phase sem)
   end.
 
 Fixpoint QasmInstsSemantics (num_qubits : nat)
-           (insts : list QasmTerm) (sem : Square (2 ^ num_qubits)) :=
+         (insts : list QasmTerm) (sem : Square (2 ^ num_qubits)) :=
   match insts with
   | head :: tail => exists sem_head sem_tail,
       QasmInstSemantics num_qubits head sem_head /\
         QasmInstsSemantics num_qubits tail sem_tail /\
-        sem = Mmult sem_head sem_tail
-  | [] => sem = I (2 ^ num_qubits)
+        (exists global_phase, scale global_phase sem = Mmult sem_head sem_tail)
+  | [] => exists global_phase, scale global_phase sem = I (2 ^ num_qubits)
   end.
 
 Definition QasmSemantics (prog : QasmProgram) (sem : Square (2 ^ (prog.(num_qubits)))) :=

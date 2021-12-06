@@ -79,29 +79,62 @@ Definition sliceTerm (decls : list string)
   | _ => None (* Too nonlocal *)
   end.
 
+(* TODO move to mexp file *)
+Lemma mexp_scale :
+  forall (dim : nat) (A expA : Square dim) (sc : R),
+    matrix_exponential A expA ->
+    matrix_exponential (scale (Ci * sc) A) (scale (Cexp sc) expA).
+Proof.
+Admitted.
+
 Lemma sliceTermCorrect :
   forall decls duration term nSlices,
     sliceTerm decls duration term nSlices = None \/
-      exists q_insts sem Hi,
-        (sliceTerm decls duration term nSlices = Some q_insts /\
-           QasmInstsSemantics (length decls) q_insts sem /\
-           interpret_TIH_Term decls term = Some Hi /\
-           matrix_exponential (scale (- Ci * (sem_HScalar duration) / INR nSlices) Hi) sem).
+      exists q_insts,
+        sliceTerm decls duration term nSlices = Some q_insts /\
+        exists Hi sem,
+           (interpret_TIH_Term decls term = Some Hi /\
+           matrix_exponential (scale (- Ci * (sem_HScalar duration) / INR nSlices) Hi) sem /\
+           QasmInstsSemantics (length decls) q_insts sem).
 Proof.
   intros.
   destruct term.
   destruct hPaulis as [| p1].
-  - (* Empty term; invalid AST? *)
-    admit.
+  - (* Empty term; impossible AST? *)
+    right.
+    exists [].
+    split.
+    auto.
+    exists (scale (sem_HScalar hScale) (I (2 ^ length decls))).
+    exists (scale (Cexp (- (sem_HScalar hScale) * (sem_HScalar duration) / INR nSlices))
+                  (I (2 ^ length decls))).
+    split.
+    + auto.
+    + split.
+      ++ rewrite Mscale_assoc.
+         (* linear algebra incoming *)
+         (* somehow apply mexp_scale? *)
+         admit.
+      ++ simpl.
+         exists (/ Cexp (- sem_HScalar hScale * sem_HScalar duration / INR nSlices)).
+         rewrite Mscale_assoc.
+         rewrite Cinv_l.
+         apply Mscale_1_l.
+         apply Cexp_nonzero.
   - destruct hPaulis as [| p2].
     + (* 1-local *)
+      destruct p1.
       admit.
     + destruct hPaulis as [| p3].
       * (* 2-local *)
         admit.
       * (* Too non-local *)
-        (* Disgusting. *)
-        admit.
+        left.
+        unfold sliceTerm.
+        simpl.
+        destruct p1.
+        destruct p2.
+        reflexivity.
 Admitted.
 
 Fixpoint sliceTerms (decls : list string)
@@ -189,7 +222,8 @@ Proof.
         ** intros.
            unfold QasmSemantics.
            simpl.
-           auto.
+           exists 1.
+           apply Mscale_1_l.
         ** intro eps.
            intros.
            exists 1%nat.
