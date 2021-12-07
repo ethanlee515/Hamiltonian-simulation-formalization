@@ -62,21 +62,21 @@ Parameter RZZGate : R -> Square 4.
 
 Axiom RXGate_correct :
     forall (theta : R),
-        matrix_exponential (scale (Ci * theta / 2) XGate) (RXGate theta).
+        matrix_exponential (scale (-Ci * theta / 2) XGate) (RXGate theta).
 
 Axiom RYGate_correct :
     forall (theta : R),
-        matrix_exponential (scale (Ci * theta / 2) YGate) (RYGate theta).
+        matrix_exponential (scale (-Ci * theta / 2) YGate) (RYGate theta).
 
 Axiom RZGate_correct :
     forall (theta : R),
-      matrix_exponential (scale (Ci * theta / 2) ZGate) (RZGate theta).
+      matrix_exponential (scale (-Ci * theta / 2) ZGate) (RZGate theta).
 
 (* Tell me it ain't so *)
 Parameter RIGate : R -> Square 2.
 (* At least prove this... *)
 Axiom RIGate_correct : forall (theta : R),
-	matrix_exponential (scale (Ci * theta / 2) (I 2)) (RIGate theta).
+	matrix_exponential (scale (-Ci * theta / 2) (I 2)) (RIGate theta).
 
 Definition PauliToExpM (p : Pauli) (theta : R) :=
   match p with
@@ -88,7 +88,7 @@ Definition PauliToExpM (p : Pauli) (theta : R) :=
 
 Lemma PauliToExpM_correct :
   forall (p : Pauli) (theta : R),
-    matrix_exponential (scale (Ci * theta / 2) (PauliToMatrix p)) (PauliToExpM p theta).
+    matrix_exponential (scale (-Ci * theta / 2) (PauliToMatrix p)) (PauliToExpM p theta).
 Proof.
   intros.
   induction p.
@@ -97,6 +97,13 @@ Proof.
   apply RYGate_correct.
   apply RZGate_correct.
 Qed.
+
+Lemma PauliToExpM_correct2t :
+  forall (p : Pauli) (theta2 : R),
+    matrix_exponential (scale (-Ci * theta2) (PauliToMatrix p)) (PauliToExpM p (2 * theta2)).
+Proof.
+  (* Arithmetics...... *)
+Admitted.
 
 Definition RXYGate (t : R) : Square 4 :=
     (* TODO *) fun (i j : nat) => 0.

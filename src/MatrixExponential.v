@@ -94,6 +94,13 @@ Definition matrix_exponential {n : nat} (M Mexp : Square n) :=
 (* -- Facts on matrix exponential -- *)
 
 Lemma mexp_scale :
+  forall (dim : nat) (A expA: Square dim) (sc : R),
+    matrix_exponential A expA ->
+    matrix_exponential (scale sc A) (scale (exp sc) expA).
+Proof.
+  Admitted.
+        
+Lemma mexp_cscale :
   forall (dim : nat) (A expA : Square dim) (sc : R),
     matrix_exponential A expA ->
     matrix_exponential (scale (Ci * sc) A) (scale (Cexp sc) expA).
@@ -131,9 +138,6 @@ Proof.
   (* Disgusting. *)
 Admitted.
 
-
-
-
 (*
      *** Some lemmas needed by Semantics.v ***
  *)
@@ -156,8 +160,23 @@ Proof.
   (* eapply seq_conv_unique. <-- This command fails. *)
 Admitted.
 
-  
-
 Lemma mat_exp_WF {n : nat} : forall (M Mexp : Square n),
     matrix_exponential M Mexp -> WF_Matrix M -> WF_Matrix Mexp.
+Proof. Admitted.
+
+(* More matrix exponential facts... *)
+
+Definition padIs (num_qubits : nat) (g : Square 2) (loc : nat) : Square (2 ^ num_qubits) :=
+  kron (kron (I (2 ^ loc)) g) (I (2 ^ (num_qubits - loc - 1))).
+
+Lemma mexp_padIs :
+  forall num_qubits A expA loc,
+    matrix_exponential A expA ->
+    matrix_exponential (padIs num_qubits A loc) (padIs num_qubits expA loc).
+Proof. Admitted.
+
+(* Not sure where this next lemma belongs *)
+Lemma padIs_scale :
+  forall num_qubits A sc loc,
+    padIs num_qubits (scale sc A) loc = scale sc (padIs num_qubits A loc).
 Proof. Admitted.

@@ -158,11 +158,34 @@ Proof.
                   (PauliToExpM p (2 * sem_HScalar duration / INR nSlices * sem_HScalar hScale))
                   n).
         split.
-        ** unfold padIs.
-           Search PauliToExpM.
-           (* TODO complicated linear algebra *)
-           (* Need matrix exponential facts *)
+        ** (* sem is correct (matrix exp) *)
+           assert (fold_padI: padIs (length decls) (PauliToMatrix p) n =
+                     I (2 ^ n) ⊗ PauliToMatrix p ⊗ I (2 ^ (Datatypes.length decls - n - 1))).
+           unfold padIs.
+           reflexivity.
+           rewrite <- fold_padI.
+           Search padIs.
+           rewrite <- padIs_scale.
+           Search padIs.
+           apply mexp_padIs.
+           Set Printing All.
+           (* Print PauliToExpM_correct2t. *)
+           Unset Printing All.
+           (* Print PauliToExpM_correct2t. *)
+           assert (lhs_simpl :
+                    - Ci * sem_HScalar duration / INR nSlices * sem_HScalar hScale =
+                      - Ci * (sem_HScalar duration / INR nSlices * sem_HScalar hScale)%R).
            admit.
+           rewrite lhs_simpl.
+           assert (rhs_simpl
+                    : (2 * sem_HScalar duration / INR nSlices * sem_HScalar hScale)%R =
+                        (2 * (sem_HScalar duration / INR nSlices * sem_HScalar hScale))%R ).
+           admit.
+           rewrite rhs_simpl.
+           Set Printing All.
+           (* Print PauliToExpM_correct2t. *)
+           apply PauliToExpM_correct2t.
+           Unset Printing All.
         ** (* TODO need matrix exponential facts *)
           (* induction p. *)
           admit.
