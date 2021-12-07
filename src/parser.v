@@ -62,10 +62,10 @@ Fixpoint tokenize_helper (cls : chartype) (acc xs : list ascii)
   | [] => tk
   | (x::xs') =>
     match cls, classifyChar x, x with
-    | _, _, "[" =>
+    | _, _, "(" =>
       tk ++ ["("]::(tokenize_helper other [] xs')
     | _, _, ")" =>
-      tk ++ ["("]::(tokenize_helper other [] xs')
+      tk ++ [")"]::(tokenize_helper other [] xs')
     | _, white, _ =>
       tk ++ (tokenize_helper white [] xs')
     | alpha,alpha,x =>
