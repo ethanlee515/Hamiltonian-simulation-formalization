@@ -80,8 +80,9 @@ Lemma sliceTermCorrect :
     sliceTerm decls duration term nSlices = None \/
       exists q_insts,
         sliceTerm decls duration term nSlices = Some q_insts /\
-        exists Hi sem,
-           (interpret_TIH_Term decls term = Some Hi /\
+        exists Hi,
+          (interpret_TIH_Term decls term = Some Hi) /\
+          exists sem, (
            matrix_exponential (scale (- Ci * (sem_HScalar duration) / INR nSlices) Hi) sem /\
            QasmInstsSemantics (length decls) q_insts sem).
 Proof.
@@ -94,11 +95,11 @@ Proof.
     split.
     auto.
     exists (scale (sem_HScalar hScale) (I (2 ^ length decls))).
-    exists (scale (Cexp (- (sem_HScalar hScale) * (sem_HScalar duration) / INR nSlices))
-                  (I (2 ^ length decls))).
     split.
     + auto.
-    + split.
+    + exists (scale (Cexp (- (sem_HScalar hScale) * (sem_HScalar duration) / INR nSlices))
+                    (I (2 ^ length decls))).
+      split.
       ++ rewrite Mscale_assoc.
          (* linear algebra incoming *)
          (* somehow apply mexp_scale? *)
@@ -112,9 +113,69 @@ Proof.
   - destruct hPaulis as [| p2].
     + (* 1-local *)
       destruct p1.
-      admit.
+      case_eq (find_qubit decls loc).
+      ++ intros.
+         unfold sliceTerm.
+         simpl.
+         rewrite H.
+         right.
+         exists (makeQT1 p (HScDiv (HScMult duration hScale) (natToHSc (nSlices + (nSlices + 0)))) n).
+         split.
+         reflexivity.
+         unfold interpret_TIH_Term.
+         unfold hPaulis.
+         unfold interpret_HPaulis.
+         Print interpret_HPauli'_correct.
+         rewrite <- interpret_HPauli'_correct.
+         simpl.
+         rewrite H.
+         Set Printing All.
+         eexists.
+         split.
+         Unset Printing All.
+         rewrite Mmult_1_r.
+         reflexivity.
+         apply WF_kron.
+      * rewrite pow_two_succ_l.
+        rewrite <- Nat.pow_add_r.
+        assert (arithmatics: forall x : nat, (n + 1 + (x - n - 1))%nat = x).
+          intro x.
+          (* Why does lia not work here? *)
+          admit.
+        rewrite arithmatics.
+        reflexivity.
+      * (* Same as the previous one? *) admit.
+      * apply WF_kron; try reflexivity.
+        apply WF_I.
+        apply PauliToMatrix_WF.
+      * apply WF_I.
+      * rewrite Mscale_assoc.
+        Search Pauli.
+        Print PauliToExpM.
+        Print padIs.
+        exists (padIs
+                  (length decls)
+                  (PauliToExpM p (2 * sem_HScalar duration / INR nSlices * sem_HScalar hScale))
+                  n).
+        split.
+        ** unfold padIs.
+           Search PauliToExpM.
+           (* TODO complicated linear algebra *)
+           (* Need matrix exponential facts *)
+           admit.
+        ** (* TODO need matrix exponential facts *)
+          (* induction p. *)
+          admit.
+        ++ (* error case: site not found in decl *)
+           intros.
+           left.
+           unfold sliceTerm.
+           simpl.
+           rewrite H.
+           reflexivity.
     + destruct hPaulis as [| p3].
       * (* 2-local *)
+        (* TODO this is going to be bad... *)
         admit.
       * (* Too non-local *)
         left.

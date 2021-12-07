@@ -53,23 +53,50 @@ Definition PauliToMatrix (p : Pauli) : Square 2 :=
     end.
 
 (* Implemented by Qiskit *)
+(* Maybe we should write the matrices out anyways? *)
 Parameter RXGate : R -> Square 2.
 Parameter RYGate : R -> Square 2.
 Parameter RZGate : R -> Square 2.
 Parameter RXXGate : R -> Square 4.
 Parameter RZZGate : R -> Square 4.
 
-Axiom RXGate_Correct :
+Axiom RXGate_correct :
     forall (theta : R),
-        matrix_exponential ((scale theta XGate)) (RXGate theta).
+        matrix_exponential (scale (Ci * theta / 2) XGate) (RXGate theta).
 
-Axiom RYGate_Correct :
+Axiom RYGate_correct :
     forall (theta : R),
-        matrix_exponential ((scale theta YGate)) (RYGate theta).
+        matrix_exponential (scale (Ci * theta / 2) YGate) (RYGate theta).
 
-Axiom RZGate_Correct :
+Axiom RZGate_correct :
     forall (theta : R),
-        matrix_exponential ((scale theta ZGate)) (RZGate theta).
+      matrix_exponential (scale (Ci * theta / 2) ZGate) (RZGate theta).
+
+(* Tell me it ain't so *)
+Parameter RIGate : R -> Square 2.
+(* At least prove this... *)
+Axiom RIGate_correct : forall (theta : R),
+	matrix_exponential (scale (Ci * theta / 2) (I 2)) (RIGate theta).
+
+Definition PauliToExpM (p : Pauli) (theta : R) :=
+  match p with
+  | Pauli_I => RIGate theta
+  | Pauli_X => RXGate theta
+  | Pauli_Y => RYGate theta
+  | Pauli_Z => RZGate theta
+  end.
+
+Lemma PauliToExpM_correct :
+  forall (p : Pauli) (theta : R),
+    matrix_exponential (scale (Ci * theta / 2) (PauliToMatrix p)) (PauliToExpM p theta).
+Proof.
+  intros.
+  induction p.
+  apply RIGate_correct.
+  apply RXGate_correct.
+  apply RYGate_correct.
+  apply RZGate_correct.
+Qed.
 
 Definition RXYGate (t : R) : Square 4 :=
     (* TODO *) fun (i j : nat) => 0.
