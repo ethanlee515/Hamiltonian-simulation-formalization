@@ -5,7 +5,7 @@ From Coq Require Import Arith.Arith.
 From Coq Require Import Init.Nat.
 From Coq Require Import Arith.EqNat.
 From Coq Require Import Lists.List. Import ListNotations.
-
+(* Want something that follows grammar*) 
 Definition isWhite (c : ascii) : bool :=
   let n := nat_of_ascii c in
   orb (orb (n =? 32) (* space *)
@@ -63,9 +63,9 @@ Fixpoint tokenize_helper (cls : chartype) (acc xs : list ascii)
   | (x::xs') =>
     match cls, classifyChar x, x with
     | _, _, "[" =>
-      tk ++ ["["]::(tokenize_helper other [] xs')
-    | _, _, "]" =>
-      tk ++ ["]"]::(tokenize_helper other [] xs')
+      tk ++ ["("]::(tokenize_helper other [] xs')
+    | _, _, ")" =>
+      tk ++ ["("]::(tokenize_helper other [] xs')
     | _, white, _ =>
       tk ++ (tokenize_helper white [] xs')
     | alpha,alpha,x =>
@@ -100,7 +100,15 @@ Compute tokenize "abc12=3 2.23*(3+(a+c))" %string. *)
 Compute tokenize "[ H1 : 2 ; Q2.Y ]"%string.
 Compute tokenize "[ H2 : 1 ; Q1.X * Q2.Z + Q3.Y ]"%string. 
 Compute tokenize "[H3 : 1.2 ; (3 + 5) / 12 Q3.X ]"%string. 
- 
+Compute tokenize "Site
+    fock F1
+    qubit Q1
+    qubit Q2
+    qubit Q3 ;
+Hamiltonian
+    ( H1 : 3.5 , Q1.X * Q2.Z + Q3.Y )
+    ( H2 : 4.245 , Q2.Y + Q1.Z )
+    ( H3 : 4 , (2.4*3/5)Q1.X )"%string.
 
 (*Grammer :
 Prog := HSF id Sites Decls Hamiltonian Insts ENDHSF
@@ -111,9 +119,41 @@ r_expr := textbook stuff hopefully
 TIH := TIH_term [ + TIH_term ]*
 TIH_term := [r_expr] HPauli [ * HPauli ]*  
 HPauli:= id . [X | Y | Z | I]
- *) 
+- Get HPauli  
+- Get *) 
 
 
+(Inductive optionE (X:Type) : Type :=
+  | SomeE (x : X)
+  | NoneE (s : string).
 
+
+Arguments SomeE {X}.
+Arguments NoneE {X}.
+
+Notation "' p <- e1 ;; e2"
+   := (match e1 with
+       | SomeE p ⇒ e2
+       | NoneE err ⇒ NoneE err
+       end)
+   (right associativity, p pattern, at level 60, e1 at next level).
+Notation "'TRY' ' p <- e1 ;; e2 'OR' e3"
+   := (match e1 with
+       | SomeE p ⇒ e2
+       | NoneE _ ⇒ e3
+       end)
+   (right associativity, p pattern,
+    at level 60, e1 at next level, e2 at next level).
+
+Definition parseIdentifier (xs : list token)
+                         : optionE (string × list token) :=
+match xs with
+| [] ⇒ NoneE "Expected identifier"
+| x::xs' ⇒
+    if forallb isLowerAlpha (list_of_string x) then
+      SomeE (x, xs')
+    else
+      NoneE ("Illegal identifier:'" ++ x ++ "'")
+end.
 
 
