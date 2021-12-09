@@ -183,9 +183,8 @@ Proof.
 Qed.
 
 
-
 (* 
-    Lemmas about term interpretation
+   Lemmas showing that Hamiltonian terms are Hermitian 
  *)
 
 Lemma declsToMat_pauli_or_I : forall x d l p,
@@ -198,7 +197,99 @@ Proof.
       * left. auto.
       * right. auto. 
     + apply IHd' in H. assumption. 
+Qed.
+
+Lemma interpret_HPauli_helper_herm :
+  forall (decls : list string) (label : string) (p : Pauli),
+    Herm (interpret_HPauli_helper decls label p).
+Proof. 
+  intros.
+  unfold interpret_HPauli_helper.
+  destruct decls. apply herm_I.
+  apply herm_big_kron.
+  rewrite Forall_forall. intros A H. apply declsToMat_pauli_or_I in H.
+  destruct H; subst.
+  - apply PauliToMatrix_herm.
+  - apply herm_I.
 Qed.  
+
+Lemma interpret_HPauli_herm :
+  forall (decls : list string) (p : HPauli) (M : Square (2 ^ List.length decls)),
+    interpret_HPauli decls p = Some M -> Herm M.
+Proof.
+  intros. destruct p eqn:Ep. unfold interpret_HPauli in H.
+  destruct (In_bool loc decls) eqn:Ein; try discriminate.
+  inversion H. 
+  apply interpret_HPauli_helper_herm.
+Qed.
+
+Lemma HPauli_terms_commute {n : nat} :
+  forall (decls : list string) (p : HPauli) (ps : list HPauli) (M1 M2 : Square n),
+    interpret_HPauli decls p = Some M1 ->
+    interpret_HPaulis decls ps = Some M2 ->
+    Mat_commute M1 M2.
+Proof. Admitted.
+(* This will likely require changing interpret_HPauli to ensure that no site receives more 
+   than one Pauli. The theorem statement will likely need to be adjusted too, with something
+   like ~(In p ps).
+ *)
+
+Lemma interpret_HPaulis_herm :
+  forall (decls : list string) (ps : list HPauli) (M : Square (2 ^ List.length decls)),
+    interpret_HPaulis decls ps = Some M -> Herm M.
+Proof.
+  intros decls ps. generalize dependent decls.
+  induction ps as [|p ps']; intros.
+  - inversion H. apply herm_I.
+  - inversion H.
+    destruct (interpret_HPauli decls p) eqn:E1; try discriminate.
+    destruct (interpret_HPaulis decls ps') eqn:E2; try discriminate.
+    inversion H1. apply herm_mult.
+    + eapply interpret_HPauli_herm. apply E1.
+    + eapply IHps'. apply E2.
+    + eapply HPauli_terms_commute.
+      * apply E1.
+      * apply E2.
+Qed.
+
+Lemma interpret_TIH_Term_herm :
+  forall (decls : list string) (s : TIH_Term) (M : Square (2 ^ List.length decls)),
+    interpret_TIH_Term decls s = Some M -> Herm M.
+Proof.
+  intros. unfold interpret_TIH_Term in H.
+  destruct (interpret_HPaulis decls (hPaulis s)) eqn:E; try discriminate.
+  inversion H.
+  apply interpret_HPaulis_herm in E.
+  apply herm_scale. assumption.
+Qed.
+
+Lemma interpret_TIH_Terms_herm : 
+  forall (decls : list string) (ss : list TIH_Term) (M : Square (2 ^ List.length decls)),
+    interpret_TIH_Terms decls ss = Some M -> Herm M.
+Proof.
+  intros decls ss. generalize dependent decls. induction ss as [|t T].
+  - intros. inversion H. apply herm_Zero.
+  - intros. inversion H. destruct (interpret_TIH_Term decls t) eqn:E1.
+    + destruct (interpret_TIH_Terms decls T) eqn:E2.
+      * apply IHT in E2. inversion H1. apply herm_plus.
+        -- eapply interpret_TIH_Term_herm. apply E1.
+        -- assumption.
+      * discriminate.
+    + discriminate.
+Qed.
+
+Lemma term_herm {n : nat} : forall (P : H_Program) (T : HSF_Term) (S : Square n) H,
+    sem_term P T S -> interpret_term P T = Some H -> Herm H.
+Proof.
+  intros P T S H Hsem Hit.
+  unfold interpret_term in Hit. eapply interpret_TIH_Terms_herm.
+  apply Hit.
+Qed.  
+
+
+(* 
+    Lemmas about term interpretation
+ *)
 
 Lemma interpret_HPauli_helper_WF :
   forall (decls : list string) (label : string) (p : Pauli),
@@ -296,8 +387,6 @@ Proof.
 Qed.
 
 
-
-
 (*
     Lemmas about commuting
  *)
@@ -324,15 +413,23 @@ Lemma ham_commute_term_semantics {n : nat} :
   ham_commute P H1 H2 -> Mat_commute S1 S2.
 Proof.
   intros P H1 H2 S1 S2 HH1 HH2 Hcomm.
+  remember HH1 as HH1'. remember HH2 as HH2'. clear HeqHH1' HeqHH2'.
   destruct (ham_commute_terms P H1 H2 Hcomm) as [M1 [M2 [HM1 [HM2 HMcomm]]]]. clear Hcomm.
-  unfold sem_term in HH1. rewrite HM1 in HH1. inversion HH1 as [Hd HS1]. clear HH1 HM1.
-  unfold sem_term in HH2. rewrite HM2 in HH2. inversion HH2 as [Hd2 HS2]. clear HH2 HM2 Hd2.
+  unfold sem_term in HH1. rewrite HM1 in HH1. inversion HH1 as [Hd HS1]. clear HH1.
+  unfold sem_term in HH2. rewrite HM2 in HH2. inversion HH2 as [Hd2 HS2]. clear HH2 Hd2.
   remember (mat_exp_well_defined (- Ci * sem_HScalar (Duration H1) .* M1
      .+ - Ci * sem_HScalar (Duration H2) .* M2)) as HM12_.
   inversion HM12_ as [S12 HM12]. clear HeqHM12_ HM12_.
   unfold Mat_commute. subst.
   assert (H : S1 × S2 = S12). {
-    eapply mat_exp_commute_add.
+    apply mat_exp_commute_add_herm with (M := (- Ci * sem_HScalar (Duration H1) .* M1))
+                                        (N := (- Ci * sem_HScalar (Duration H2) .* M2)).
+    - apply herm_scale. eapply term_herm.
+      + apply HH1'.
+      + apply HM1.
+    - apply herm_scale. eapply term_herm.
+      + apply HH2'.
+      + apply HM2.      
     - apply HS1.
     - apply HS2.
     - apply HM12.
@@ -344,7 +441,14 @@ Proof.
       reflexivity.
   }
   rewrite H. symmetry.
-  eapply mat_exp_commute_add.
+  apply mat_exp_commute_add_herm with (N := (- Ci * sem_HScalar (Duration H1) .* M1))
+                                      (M := (- Ci * sem_HScalar (Duration H2) .* M2)).
+  - apply herm_scale. eapply term_herm.
+      + apply HH2'.
+      + apply HM2.
+    - apply herm_scale. eapply term_herm.
+      + apply HH1'.
+      + apply HM1.  
   - apply HS2.
   - apply HS1.
   - rewrite Mplus_comm. apply HM12.
@@ -355,6 +459,9 @@ Proof.
     rewrite HMcomm. rewrite Cmult_comm.
     reflexivity.
 Qed.
+
+
+
 
 (* 
     Lemmas about semantics
@@ -385,9 +492,13 @@ Lemma term_semantics_unique {n : nat} :
     sem_term P T S1 -> sem_term P T S2 -> S1 = S2.
 Proof.
   intros P T S1 S2 HS1 HS2.
+  remember HS1 as HS1'. clear HeqHS1'.
   unfold sem_term in HS1. unfold sem_term in HS2.
-  destruct (interpret_term P T) as [M |]; try contradiction.
-  eapply mat_exp_unique.
+  destruct (interpret_term P T) as [M |] eqn:E; try contradiction.
+  eapply mat_exp_unique_herm with (M0 := M).
+  - eapply term_herm.
+    + apply HS1'.
+    + auto.
   - inversion HS1; subst. apply H0.
   - inversion HS2; subst. apply H0.
 Qed.

@@ -1,5 +1,6 @@
 Require Import Reals QWIRE.Matrix.
 Require Import Complex.
+Require Import Lra.
 
 (* -- Sequence convergence in metric space -- *)
 
@@ -135,7 +136,7 @@ Admitted.
 
 
 (*
-     *** Some lemmas needed by Semantics.v ***
+     *** Some lemmas (previously) needed by Semantics.v ***
  *)
 
 
@@ -144,19 +145,54 @@ Lemma mat_exp_well_defined {n : nat} : forall (M : Square n),
     exists (Mexp : Square n), matrix_exponential M Mexp.
 Proof. Admitted.
 
+
+
+(* There are all sorts of problems with this, but I don't think we'll end up needing
+   it anyways *)
 Lemma seq_conv_unique : forall X seq n1 n2,
   seq_conv X seq n1 -> seq_conv X seq n2 -> n1 = n2.
-Proof. Admitted. Print seq_conv_unique.
+Proof.
+  intros X seq n1 n2 H1 H2. unfold seq_conv in *.
+  assert (H : forall eps,
+             eps > 0 ->
+             exists N,
+               forall n, (n >= N)%nat ->
+                         Rabs ((dist X (seq n) n1) - (dist X (seq n) n2)) < eps). {
+    intros. remember (H1 eps H) as H1'. remember (H2 eps H) as H2'. clear HeqH1' HeqH2' H1 H2.
+    inversion H1' as [N1 H1'']. inversion H2' as [N2 H2'']. clear H1' H2'.
+    destruct (blt_reflect N1 N2) as [HN | HN]. (* we want max(N1, N2) *)
+    - exists N2. intros n HN2.
+      assert (HN1 : (n >= N1)%nat). lia.
+      apply H1'' in HN1. apply H2'' in HN2. clear H1'' H2'' HN.
+      unfold Rabs.
+      assert (a : dist X (seq n) n1 >= 0). apply dist_pos.
+      assert (b : dist X (seq n) n2 >= 0). apply dist_pos.
+      destruct (Rcase_abs (dist X (seq n) n1 - dist X (seq n) n2)); lra.
+    - exists N1. intros n HN1.
+      assert (HN2 : (n >= N2)%nat). lia.
+      apply H1'' in HN1. apply H2'' in HN2. clear H1'' H2'' HN.
+      unfold Rabs.
+      assert (a : dist X (seq n) n1 >= 0). apply dist_pos.
+      assert (b : dist X (seq n) n2 >= 0). apply dist_pos.
+      destruct (Rcase_abs (dist X (seq n) n1 - dist X (seq n) n2)); lra.
+  }  
+  clear H1 H2. Print seq_conv.
+  assert (HHHH : seq_conv R_met (fun n => Rabs (dist X (seq n) n1 - dist X (seq n) n2)) 0). {
+    admit.
+  }
+  apply dist_refl.
+  Admitted.
 
+  
+  
 Lemma mat_exp_unique {n : nat} : forall (M Mexp1 Mexp2 : Square n),
     matrix_exponential M Mexp1 -> matrix_exponential M Mexp2 -> Mexp1 = Mexp2.
 Proof.
   intros M M1 M2 H1 H2.
   unfold matrix_exponential in *. unfold mat_infinite_sum in *. Locate Metric_Space.
-  (* eapply seq_conv_unique. <-- This command fails. *)
-Admitted.
-
-  
+  eapply seq_conv_unique with (X := MatrixMetricSpace n).
+  apply H1. apply H2.
+Qed.  
 
 Lemma mat_exp_WF {n : nat} : forall (M Mexp : Square n),
     matrix_exponential M Mexp -> WF_Matrix M -> WF_Matrix Mexp.

@@ -18,15 +18,15 @@ Definition XGate : Square 2 := fun (i j : nat) =>
 
 Definition YGate : Square 2 := fun (i j : nat) =>
     match (i, j) with
-    | (0, 1) => Ci
-    | (1, 0) => -Ci
+    | (0, 1) => -Ci
+    | (1, 0) => Ci
     | _ => RtoC 0
     end.
 
 Definition ZGate : Square 2 := fun (i j : nat) =>
     match (i, j) with
-    | (1, 0) => RtoC 1
-    | (0, 1) => RtoC (-1)
+    | (0, 0) => RtoC 1
+    | (1, 1) => RtoC (-1)
     | _ => RtoC 0
     end.
 
@@ -154,8 +154,53 @@ Proof.
     unfold ZGate. destruct x.
     + destruct H.
       * lia.
-      * destruct y; auto. destruct y; auto. lia.
+      * destruct y; auto. lia.
     + destruct x; auto. destruct H.
       * lia.
-      * destruct y; auto. lia.
+      * destruct y; auto. destruct y; auto. lia.
+Qed.
+
+Lemma PauliToMatrix_herm : forall (p : Pauli), Herm (PauliToMatrix p).
+Proof.
+  intros. destruct p; simpl.
+  - apply herm_I.
+  - intros i j. unfold Cconj.
+    destruct i.
+    + destruct j.
+      * simpl. rewrite Ropp_0. auto.
+      * destruct j; simpl; rewrite Ropp_0; auto.
+    + destruct i; simpl.
+      * destruct j; simpl.
+        -- rewrite Ropp_0. auto.
+        -- destruct j; simpl; rewrite Ropp_0; auto.
+      * destruct j; simpl.
+        -- rewrite Ropp_0; auto.
+        -- destruct j; simpl; rewrite Ropp_0; auto.
+  - intros i j. unfold Cconj.
+    destruct i.
+    + destruct j.
+      * simpl. rewrite Ropp_0. auto.
+      * destruct j; simpl.
+        -- rewrite <- Ropp_0; auto.
+        -- rewrite Ropp_0; auto.
+    + destruct i; simpl.
+      * destruct j; simpl.
+        -- rewrite Ropp_0. rewrite Ropp_involutive. auto.
+        -- destruct j; simpl; rewrite Ropp_0; auto.
+      * destruct j; simpl.
+        -- rewrite Ropp_0; auto.
+        -- destruct j; simpl; rewrite Ropp_0; auto.
+  - intros i j. unfold Cconj.
+    destruct i.
+    + destruct j.
+      * simpl. rewrite Ropp_0. auto.
+      * destruct j;
+         simpl; rewrite Ropp_0; auto.
+    + destruct i; simpl.
+      * destruct j; simpl.
+        -- rewrite Ropp_0. auto.
+        -- destruct j; simpl; rewrite Ropp_0; auto.
+      * destruct j; simpl.
+        -- rewrite Ropp_0; auto.
+        -- destruct j; simpl; rewrite Ropp_0; auto.
 Qed.
