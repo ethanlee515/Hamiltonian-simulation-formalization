@@ -191,8 +191,13 @@ Proof.
     unfold ZGate. destruct x.
     + destruct H.
       * lia.
-      * destruct y; auto. destruct y; auto. lia.
+      * destruct y; auto. lia.
     + destruct x; auto. destruct H.
       * lia.
-      * destruct y; auto. lia.
+      * destruct y; auto.
+        case_eq y.
+        intros.
+        rewrite H0 in H.
+        lia.
+        intros. reflexivity.
 Qed.
