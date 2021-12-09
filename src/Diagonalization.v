@@ -228,15 +228,16 @@ Qed.
 
 Theorem mat_exp_WF_herm {n : nat} : forall (M Mexp : Square n) (c : C),
     Herm M -> matrix_exponential (c .* M) Mexp -> WF_Matrix M -> WF_Matrix Mexp.
-Proof. Admitted. (*
-  intros M Mexp Hherm HM H_WF.
-  rewrite (exp_diag_correct M Mexp) in HM; try apply herm_diagonalizable; auto.
-  destruct HM as [Tinv [D [T [HD HeD]]]].
-  destruct HD as  [H1 [H2 [H3 [H4 [H5 H6]]]]].
-  destruct HeD as [H7 [H8 [H9 [H10 [H11 H12]]]]].
-  rewrite H9. apply WF_mult; auto.
-  apply WF_mult; auto.
-Qed.*)
+Proof.
+  intros M Mexp c Hherm HM H_WF.
+  rewrite (exp_diag_correct (c .* M) Mexp) in HM.
+  - destruct HM as [Tinv [D [T [HD HeD]]]].
+    destruct HD as  [H1 [H2 [H3 [H4 [H5 H6]]]]].
+    destruct HeD as [H7 [H8 [H9 [H10 [H11 H12]]]]].
+    rewrite H9. apply WF_mult; auto.
+    apply WF_mult; auto.
+  - apply herm_diagonalizable. apply herm_scale. auto.
+Qed.
 
 Theorem mat_exp_commute_add_herm {n : nat} : forall (M N SM SN SMN : Square n),
     Herm M ->
