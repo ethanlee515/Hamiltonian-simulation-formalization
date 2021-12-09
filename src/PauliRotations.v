@@ -15,18 +15,18 @@ Definition XGate : Square 2 := fun (i j : nat) =>
     | (1, 0) => RtoC 1
     | _ => RtoC 0
     end.
-
+    
 Definition YGate : Square 2 := fun (i j : nat) =>
     match (i, j) with
-    | (0, 1) => Ci
-    | (1, 0) => -Ci
+    | (0, 1) => -Ci
+    | (1, 0) => Ci
     | _ => RtoC 0
     end.
 
 Definition ZGate : Square 2 := fun (i j : nat) =>
     match (i, j) with
-    | (1, 0) => RtoC 1
-    | (0, 1) => RtoC (-1)
+    | (0, 0) => RtoC 1
+    | (1, 1) => RtoC (-1)
     | _ => RtoC 0
     end.
 
