@@ -88,10 +88,19 @@ Proof.
   - simpl. rewrite Ropp_0; reflexivity.
 Qed.
 
-Lemma herm_scale {n : nat} : forall (M : Square n) (c : C),
+Lemma herm_scale {n : nat} : forall (M : Square n) (r : R),
+    Herm M -> Herm (r .* M).
+Proof.
+  intros M r H. unfold ".*". unfold Herm in *.
+  intros i j. rewrite Cconj_mult_distr.
+  rewrite <- H. rewrite Cconj_R.
+  reflexivity.
+Qed.
+
+Lemma herm_scale_WRONG {n : nat} : forall (M : Square n) (c : C),
     Herm M -> Herm (c .* M).
 Proof. Admitted.
-
+  
 Lemma herm_plus {n : nat} : forall (A B : Square n), Herm A -> Herm B -> Herm (A .+ B).
 Proof. Admitted.
 
@@ -171,6 +180,10 @@ Lemma diag_scale {n : nat} : forall (M : Square n) (c : C),
     Diagonalizable M -> Diagonalizable (c .* M).
 Proof. Admitted.
 
+Lemma diag_plus {n : nat} : forall (A B : Square n),
+    Diagonalizable A -> Diagonalizable B -> Diagonalizable (A .+ B).
+Proof. Admitted.
+
 Lemma equivalent_diagonalizations {n : nat}:
   forall (T1inv D1 T1 T2inv D2 T2 M : Square n),
     Diagonalization T1inv D1 T1 M ->
@@ -185,15 +198,17 @@ Lemma exp_diag_preserves_equality {n : nat} :
     A × (exp_diag B) × C = D × (exp_diag E) × F.
 Proof. Admitted.
 
-Theorem mat_exp_well_defined_herm {n : nat} : forall (M : Square n),
-    Herm M -> exists (Mexp : Square n), matrix_exponential M Mexp.
+
+
+
+Theorem mat_exp_well_defined_diag {n : nat} : forall (M : Square n),
+    Diagonalizable M -> exists (Mexp : Square n), matrix_exponential M Mexp.
 Proof.
-  intros M H. 
-  remember (herm_diagonalizable M H) as Hd. clear HeqHd.
+  intros M H. remember H as Hd. clear HeqHd.
   unfold Diagonalizable in Hd.
   destruct Hd as [Tinv [D [T [H1 [H2 [H3 [H4 [H5 H6]]]]]]]].
   exists (Tinv × (exp_diag D) × T).
-  rewrite exp_diag_correct; try apply herm_diagonalizable; auto.
+  rewrite exp_diag_correct; auto.
   unfold is_exp_diag.
   exists Tinv. exists D. exists T. split.
   - unfold Diagonalization; tauto.
@@ -201,20 +216,26 @@ Proof.
     + apply exp_diag_preserves_diag; auto.
     + apply exp_diag_preserves_WF; auto.
 Qed.
-    
-Theorem mat_exp_unique_herm {n : nat} : forall (M Mexp1 Mexp2 : Square n) (c : C),
-    Herm M ->
-    matrix_exponential (c .* M) Mexp1 ->
-    matrix_exponential (c .* M) Mexp2 ->
+
+Corollary mat_exp_well_defined_herm {n : nat} : forall (M : Square n),
+    Herm M -> exists (Mexp : Square n), matrix_exponential M Mexp.
+Proof.
+  intros M H. apply mat_exp_well_defined_diag. apply herm_diagonalizable. auto.
+Qed.
+
+Theorem mat_exp_unique_diag {n : nat} : forall (M Mexp1 Mexp2 : Square n),
+    Diagonalizable M ->
+    matrix_exponential M Mexp1 ->
+    matrix_exponential M Mexp2 ->
     Mexp1 = Mexp2.
 Proof.
-  intros M Mexp1 Mexp2 c Hdiag H1 H2. apply herm_diagonalizable in Hdiag.
-  rewrite (exp_diag_correct (c .* M) Mexp1) in H1.
+  intros M Mexp1 Mexp2 Hdiag H1 H2.
+  rewrite (exp_diag_correct M Mexp1) in H1.
   - destruct H1 as [T1inv [D1 [T1 [HD1 HeD1]]]].
-    rewrite (exp_diag_correct (c .* M) Mexp2) in H2.
+    rewrite (exp_diag_correct M Mexp2) in H2.
     + destruct H2 as [T2inv [D2 [T2 [HD2 HeD2]]]].
       assert (H : T1inv × D1 × T1 = T2inv × D2 × T2). {
-        apply equivalent_diagonalizations with (c .* M); assumption.
+        apply equivalent_diagonalizations with M; assumption.
       }
       assert (H1 : T1inv × (exp_diag D1) × T1 = T2inv × (exp_diag D2) × T2). {
         apply exp_diag_preserves_equality; unfold Diagonalization in *; tauto.
@@ -222,33 +243,54 @@ Proof.
       destruct HeD1 as [_ [_ [H2 [_ [_ _]]]]].
       destruct HeD2 as [_ [_ [H3 [_ [_ _]]]]].
       rewrite H2. rewrite H3. auto.
-    + apply diag_scale; auto.
-  - apply diag_scale; auto.
+    + auto.
+  - auto.
 Qed.
 
-Theorem mat_exp_WF_herm {n : nat} : forall (M Mexp : Square n) (c : C),
-    Herm M -> matrix_exponential (c .* M) Mexp -> WF_Matrix M -> WF_Matrix Mexp.
+
+Corollary mat_exp_unique_herm {n : nat} : forall (M Mexp1 Mexp2 : Square n) (c : C),
+    Herm M ->
+    matrix_exponential (c .* M) Mexp1 ->
+    matrix_exponential (c .* M) Mexp2 ->
+    Mexp1 = Mexp2.
 Proof.
-  intros M Mexp c Hherm HM H_WF.
-  rewrite (exp_diag_correct (c .* M) Mexp) in HM.
+  intros M Mexp1 Mexp2 c Hdiag H1 H2.
+  apply mat_exp_unique_diag with (c .* M); auto.
+  apply diag_scale. apply herm_diagonalizable. apply Hdiag.
+Qed.
+
+Theorem mat_exp_WF_diag {n : nat} : forall (M Mexp : Square n),
+    Diagonalizable M -> matrix_exponential M Mexp -> WF_Matrix M -> WF_Matrix Mexp.
+Proof.
+  intros M Mexp Hherm HM H_WF.
+  rewrite (exp_diag_correct M Mexp) in HM.
   - destruct HM as [Tinv [D [T [HD HeD]]]].
     destruct HD as  [H1 [H2 [H3 [H4 [H5 H6]]]]].
     destruct HeD as [H7 [H8 [H9 [H10 [H11 H12]]]]].
     rewrite H9. apply WF_mult; auto.
     apply WF_mult; auto.
-  - apply herm_diagonalizable. apply herm_scale. auto.
+  - auto.
 Qed.
 
-Theorem mat_exp_commute_add_herm {n : nat} : forall (M N SM SN SMN : Square n),
-    Herm M ->
-    Herm N ->
+Corollary mat_exp_WF_herm {n : nat} : forall (M Mexp : Square n) (c : C),
+    Herm M -> matrix_exponential (c .* M) Mexp -> WF_Matrix M -> WF_Matrix Mexp.
+Proof.
+  intros M Mexp c Hherm HM H_WF.
+  apply mat_exp_WF_diag with (c .* M); auto.
+  - apply diag_scale. apply herm_diagonalizable. auto.
+  - apply WF_scale. auto.
+Qed.
+
+Theorem mat_exp_commute_add_diag {n : nat} : forall (M N SM SN SMN : Square n),
+    Diagonalizable M ->
+    Diagonalizable N ->
     matrix_exponential M SM ->
     matrix_exponential N SN ->
     matrix_exponential (M .+ N) SMN ->
     Mat_commute M N ->
     SM × SN = SMN.
-Proof.
-  intros M N SM SN SMN HM HN HSM HSN HSMN Hcomm.
+Proof. Admitted. (*
+  intros M N SM SN SMN c1 c2 HM HN HSM HSN HSMN Hcomm.
   rewrite (exp_diag_correct M SM) in HSM; try apply herm_diagonalizable; auto.
   rewrite (exp_diag_correct N SN) in HSN; try apply herm_diagonalizable; auto.
   rewrite (exp_diag_correct (M .+ N) SMN) in HSMN;
@@ -256,6 +298,6 @@ Proof.
   destruct HSM as [TMinv [DM [TM [HDM [HeDM [_ [_ _]]]]]]].
   destruct HSN as [TNinv [DN [TN [HDN [HeDN [_ [_ _]]]]]]].
   destruct HSMN as [TMNinv [DMN [TMN [HDMN [HeDMN [_ [_ _]]]]]]].
-  Admitted.
+  Admitted. *)
 
 

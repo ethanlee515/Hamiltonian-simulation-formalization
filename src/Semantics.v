@@ -319,8 +319,13 @@ Proof.
   intros P T S H Hsem Hit.
   unfold interpret_term in Hit. eapply interpret_TIH_Terms_herm.
   apply Hit.
-Qed.  
+Qed.
 
+Corollary term_diagonalizable {n : nat} : forall (P : H_Program) (T : HSF_Term) (S : Square n) H,
+    sem_term P T S -> interpret_term P T = Some H -> Diagonalizable H.
+Proof.
+  intros. apply herm_diagonalizable. eapply term_herm. apply H0. apply H1.
+Qed.
 
 (* 
     Lemmas about term interpretation
@@ -452,23 +457,23 @@ Proof.
   destruct (ham_commute_terms P H1 H2 Hcomm) as [M1 [M2 [HM1 [HM2 HMcomm]]]]. clear Hcomm.
   unfold sem_term in HH1. rewrite HM1 in HH1. inversion HH1 as [Hd HS1]. clear HH1.
   unfold sem_term in HH2. rewrite HM2 in HH2. inversion HH2 as [Hd2 HS2]. clear HH2 Hd2.
-  assert (Hherm : Herm (- Ci * sem_HScalar (Duration H1) .* M1
+  assert (Hherm : Diagonalizable (- Ci * sem_HScalar (Duration H1) .* M1
                                            .+ - Ci * sem_HScalar (Duration H2) .* M2)). {
-    apply herm_plus; apply herm_scale.
-    - eapply term_herm. apply HH1'. apply HM1.
-    - eapply term_herm. apply HH2'. apply HM2.
+    apply diag_plus; apply diag_scale.
+    - eapply term_diagonalizable. apply HH1'. apply HM1.
+    - eapply term_diagonalizable. apply HH2'. apply HM2.
   }
-  remember (mat_exp_well_defined_herm (- Ci * sem_HScalar (Duration H1) .* M1
-     .+ - Ci * sem_HScalar (Duration H2) .* M2) Hherm) as HM12_.
+  remember (mat_exp_well_defined_diag (- Ci * sem_HScalar (Duration H1) .* M1
+      .+ - Ci * sem_HScalar (Duration H2) .* M2) Hherm) as HM12_.
   inversion HM12_ as [S12 HM12]. clear HeqHM12_ HM12_.
   unfold Mat_commute. subst.
   assert (H : S1 × S2 = S12). {
-    apply mat_exp_commute_add_herm with (M := (- Ci * sem_HScalar (Duration H1) .* M1))
+    apply mat_exp_commute_add_diag with (M := (- Ci * sem_HScalar (Duration H1) .* M1))
                                         (N := (- Ci * sem_HScalar (Duration H2) .* M2)).
-    - apply herm_scale. eapply term_herm.
+    - apply diag_scale. eapply term_diagonalizable.
       + apply HH1'.
       + apply HM1.
-    - apply herm_scale. eapply term_herm.
+    - apply diag_scale. eapply term_diagonalizable.
       + apply HH2'.
       + apply HM2.      
     - apply HS1.
@@ -482,14 +487,14 @@ Proof.
       reflexivity.
   }
   rewrite H. symmetry.
-  apply mat_exp_commute_add_herm with (N := (- Ci * sem_HScalar (Duration H1) .* M1))
+  apply mat_exp_commute_add_diag with (N := (- Ci * sem_HScalar (Duration H1) .* M1))
                                       (M := (- Ci * sem_HScalar (Duration H2) .* M2)).
-  - apply herm_scale. eapply term_herm.
-      + apply HH2'.
-      + apply HM2.
-    - apply herm_scale. eapply term_herm.
-      + apply HH1'.
-      + apply HM1.  
+  - apply diag_scale. eapply term_diagonalizable.
+    + apply HH2'.
+    + apply HM2.
+  - apply diag_scale. eapply term_diagonalizable.
+    + apply HH1'.
+    + apply HM1.  
   - apply HS2.
   - apply HS1.
   - rewrite Mplus_comm. apply HM12.
