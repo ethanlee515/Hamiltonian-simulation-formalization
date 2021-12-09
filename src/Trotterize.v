@@ -15,6 +15,101 @@ Definition makeQT1 (p : Pauli) (theta : HScalar) (loc : nat) :=
   | Pauli_Z => [QasmTerm1 (Rz theta) loc]
   end.
 
+Lemma makeQT1_correct :
+  forall (num_qubits : nat) (p : Pauli) (theta : HScalar) (loc : nat),
+    (loc < num_qubits)%nat ->
+    QasmInstsSemantics
+        num_qubits
+          (makeQT1 p theta loc)
+          (padIs num_qubits (PauliToExpM p (sem_HScalar theta)) loc).
+Proof.
+  intros.
+  induction p.
+  - simpl.
+    unfold RIGate.
+    Search padIs.
+    rewrite padIs_scale.
+    exists (/ (Cexp (- sem_HScalar theta / 2))).
+    rewrite Mscale_assoc.
+    Locate "/".
+    Search Cinv.
+    rewrite Cinv_l.
+    rewrite Mscale_1_l.
+    unfold padIs.
+    Search kron.
+    rewrite id_kron.
+    rewrite id_kron.
+    assert (Simpl_LHS : (2 ^ loc * 2 * 2 ^ (num_qubits - loc - 1) = 2 ^ num_qubits)%nat).
+    (* Arithmetics... *)
+    admit.
+    rewrite Simpl_LHS.
+    reflexivity.
+    apply Cexp_nonzero.
+  - simpl.
+    eexists.
+    eexists.
+    split.
+    exists R1.
+    rewrite Mscale_1_l.
+    reflexivity.
+    split.
+    exists R1.
+    rewrite Mscale_1_l.
+    reflexivity.
+    exists R1.
+    rewrite Mscale_1_l.
+    Search I.
+    rewrite Mmult_1_r.
+    reflexivity.
+    Print reflect.
+    Search padIs.
+    apply padIs_WF.
+    admit. (* RXGate WF... Need to prove *)
+    assumption.
+  - simpl.
+    eexists.
+    eexists.
+    split.
+    exists R1.
+    rewrite Mscale_1_l.
+    reflexivity.
+    split.
+    exists R1.
+    rewrite Mscale_1_l.
+    reflexivity.
+    exists R1.
+    rewrite Mscale_1_l.
+    Search I.
+    rewrite Mmult_1_r.
+    reflexivity.
+    Print reflect.
+    Search padIs.
+    apply padIs_WF.
+    admit. (* RYGate WF... Need to prove *)
+    assumption.
+  - simpl.
+    eexists.
+    eexists.
+    split.
+    exists R1.
+    rewrite Mscale_1_l.
+    reflexivity.
+    split.
+    exists R1.
+    rewrite Mscale_1_l.
+    reflexivity.
+    exists R1.
+    rewrite Mscale_1_l.
+    Search I.
+    rewrite Mmult_1_r.
+    reflexivity.
+    Print reflect.
+    Search padIs.
+    apply padIs_WF.
+    admit. (* RZGate WF... Need to prove *)
+    assumption.
+Admitted.
+
 Definition HScPI := HScReal PI "pi".
 Definition HScPI2 := HScReal (PI / 2) "(pi/2)".
 Definition HScZero := HScReal 0 "0".
@@ -53,13 +148,20 @@ Definition makeQT2 (p1 p2 : Pauli)
   | (Pauli_Z, Pauli_Z) => [QasmTerm2 (Rzz theta) loc1 loc2]
   end.
 
+(*
+Lemma makeQT2_correct :
+  forall theta loc1 loc2,
+    loc1 =? loc2 = false ->
+    matrix_exponential (makeQT2 p1 p2 theta loc1 loc2)
+                       *)
+                     
 Definition natToHSc (n : nat) := HScReal (INR n) (string_of_nat n).
 
 Definition sliceTerm (decls : list string)
            (duration : HScalar)
            (term : TIH_Term)
            (nSlices : nat) : option (list QasmTerm) :=
-  let theta := HScDiv (HScMult duration term.(hScale)) (natToHSc (2 * nSlices)) in
+  let theta := HScDiv (HScMult (natToHSc 2) (HScMult duration term.(hScale))) (natToHSc (nSlices)) in
   match term.(hPaulis) with
   | [] => Some []
   | [HIdOp site p] =>
@@ -114,81 +216,64 @@ Proof.
     + (* 1-local *)
       destruct p1.
       case_eq (find_qubit decls loc).
-      ++ intros.
-         unfold sliceTerm.
-         simpl.
-         rewrite H.
-         right.
-         exists (makeQT1 p (HScDiv (HScMult duration hScale) (natToHSc (nSlices + (nSlices + 0)))) n).
-         split.
-         reflexivity.
-         unfold interpret_TIH_Term.
-         unfold hPaulis.
-         unfold interpret_HPaulis.
-         Print interpret_HPauli'_correct.
-         rewrite <- interpret_HPauli'_correct.
-         simpl.
-         rewrite H.
-         Set Printing All.
-         eexists.
-         split.
-         Unset Printing All.
-         rewrite Mmult_1_r.
-         reflexivity.
-         apply WF_kron.
-      * rewrite pow_two_succ_l.
-        rewrite <- Nat.pow_add_r.
-        assert (arithmatics: forall x : nat, (n + 1 + (x - n - 1))%nat = x).
-          intro x.
-          (* Why does lia not work here? *)
-          admit.
-        rewrite arithmatics.
+      ++ (* qubit found *)
+        intros.
+        unfold sliceTerm.
+        simpl.
+        rewrite H.
+        right.
+        eexists. (* q_insts *)
+        split.
         reflexivity.
-      * (* Same as the previous one? *) admit.
-      * apply WF_kron; try reflexivity.
-        apply WF_I.
-        apply PauliToMatrix_WF.
-      * apply WF_I.
-      * rewrite Mscale_assoc.
-        Search Pauli.
-        Print PauliToExpM.
-        Print padIs.
+        (* interpret TIH term *)
+        unfold interpret_TIH_Term.
+        unfold hPaulis.
+        unfold interpret_HPaulis.
+        rewrite <- interpret_HPauli'_correct.
+        simpl.
+        rewrite H.
+        rewrite Mmult_1_r.
+        eexists. (* TIH term exists *)
+        split.
+        reflexivity.
         exists (padIs
                   (length decls)
                   (PauliToExpM p (2 * sem_HScalar duration / INR nSlices * sem_HScalar hScale))
                   n).
         split.
-        ** (* sem is correct (matrix exp) *)
-           assert (fold_padI: padIs (length decls) (PauliToMatrix p) n =
-                     I (2 ^ n) ⊗ PauliToMatrix p ⊗ I (2 ^ (Datatypes.length decls - n - 1))).
-           unfold padIs.
-           reflexivity.
-           rewrite <- fold_padI.
-           Search padIs.
-           rewrite <- padIs_scale.
-           Search padIs.
-           apply mexp_padIs.
-           Set Printing All.
-           (* Print PauliToExpM_correct2t. *)
-           Unset Printing All.
-           (* Print PauliToExpM_correct2t. *)
+        * (* Semantics is correct for hprog *)
+          rewrite Mscale_assoc.
+          rewrite <- padIs_scale.
+          apply mexp_padIs.
+
            assert (lhs_simpl :
                     - Ci * sem_HScalar duration / INR nSlices * sem_HScalar hScale =
                       - Ci * (sem_HScalar duration / INR nSlices * sem_HScalar hScale)%R).
-           admit.
+           admit. (* Arithmetic *)
            rewrite lhs_simpl.
            assert (rhs_simpl
                     : (2 * sem_HScalar duration / INR nSlices * sem_HScalar hScale)%R =
                         (2 * (sem_HScalar duration / INR nSlices * sem_HScalar hScale))%R ).
-           admit.
+           admit. (* Arithmetic *)
            rewrite rhs_simpl.
-           Set Printing All.
-           (* Print PauliToExpM_correct2t. *)
            apply PauliToExpM_correct2t.
-           Unset Printing All.
-        ** (* TODO need matrix exponential facts *)
-          (* induction p. *)
+        * (* Qasm semantic matches *)
+          Print makeQT1_correct.
+          assert (HScalar_simpl :
+                   sem_HScalar (HScDiv
+                                  (HScMult (natToHSc 2) (HScMult duration hScale))
+                                  (natToHSc nSlices))
+                   = (2 * sem_HScalar duration / INR nSlices * sem_HScalar hScale)%R).
+          (* HScalar computation... *)
+          (* Don't want to deal with this right now. *)
           admit.
+          rewrite <- HScalar_simpl.
+          apply makeQT1_correct.
+          admit. (* TODO find_qubit result should be in range *)
+        * apply padIs_WF.
+          Search PauliToMatrix.
+          apply PauliToMatrix_WF.
+          admit. (* again find_qubit output range *)
         ++ (* error case: site not found in decl *)
            intros.
            left.
@@ -199,7 +284,57 @@ Proof.
     + destruct hPaulis as [| p3].
       * (* 2-local *)
         (* TODO this is going to be bad... *)
-        admit.
+        destruct p1 as [site1 pauli1].
+        destruct p2 as [site2 pauli2].
+        case_eq (find_qubit decls site1).
+        ** (* loc1 found *)
+          intro loc1.
+          intros.
+          case_eq (find_qubit decls site2).
+          *** (* loc2 found *)
+            intro loc2.
+            intros.
+            case_eq (loc1 =? loc2).
+            **** (* error: not really 2-local *)
+              intros.
+              left.
+              unfold sliceTerm.
+              simpl.
+              rewrite H.
+              rewrite H0.
+              rewrite H1.
+              reflexivity.
+            **** (* TODO this will be bad *)
+              intros.
+              right.
+              eexists.
+              split.
+              ***** (* q_insts *)
+                unfold sliceTerm.
+              simpl.
+              rewrite H.
+              rewrite H0.
+              rewrite H1.
+              simpl.
+              reflexivity.
+              ***** (* Hi *)
+                
+                
+              admit.
+          *** (* error: site2 not found *)
+            left.
+            unfold sliceTerm.
+            simpl.
+            rewrite H.
+            rewrite H0.
+            reflexivity.
+        ** (* error: loc1 not found *)
+          intros.
+          left.
+          unfold sliceTerm.
+          simpl.
+          rewrite H.
+          reflexivity.
       * (* Too non-local *)
         left.
         unfold sliceTerm.

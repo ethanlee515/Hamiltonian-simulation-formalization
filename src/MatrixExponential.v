@@ -169,6 +169,27 @@ Proof. Admitted.
 Definition padIs (num_qubits : nat) (g : Square 2) (loc : nat) : Square (2 ^ num_qubits) :=
   kron (kron (I (2 ^ loc)) g) (I (2 ^ (num_qubits - loc - 1))).
 
+Lemma padIs_WF :
+  forall (num_qubits : nat) (g : Square 2) (loc : nat),
+    (WF_Matrix g) ->
+    (loc < num_qubits)%nat ->
+    WF_Matrix (padIs num_qubits g loc).
+Proof.
+  intros.
+  unfold padIs.
+  Search kron.
+  apply WF_kron.
+  admit. (* arithmetic *)
+  admit. (* arithmetic *)
+  apply WF_kron.
+  reflexivity.
+  reflexivity.
+  Search WF_Matrix.
+  apply WF_I.
+  assumption.
+  apply WF_I.
+Admitted.
+
 Lemma mexp_padIs :
   forall num_qubits A expA loc,
     matrix_exponential A expA ->

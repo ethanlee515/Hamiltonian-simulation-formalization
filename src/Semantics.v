@@ -70,12 +70,14 @@ Fixpoint find_qubit (decls : list string) (label : string) : option nat :=
         end
   end.
 
+Print padIs.
+
 Definition interpret_HPauli' (decls : list string) (p : HPauli)
   : option (Square (2 ^ List.length decls)) :=
   let num_qubits := List.length decls in
   match p with HIdOp label pauli =>
     match find_qubit decls label with
-      | Some loc => Some (kron (kron (I (2 ^ loc)) (PauliToMatrix pauli)) (I (2 ^ (num_qubits - loc - 1))))
+      | Some loc => Some (padIs num_qubits (PauliToMatrix pauli) loc)
       | None => None
     end               
   end.

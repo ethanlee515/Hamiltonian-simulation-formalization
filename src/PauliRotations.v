@@ -4,10 +4,10 @@ Require Import MatrixExponential.
 Require Import Diagonalization.
 
 Inductive Pauli :=
-    | Pauli_I
-    | Pauli_X
-    | Pauli_Y
-    | Pauli_Z.
+| Pauli_I
+| Pauli_X
+| Pauli_Y
+| Pauli_Z.
 
 Definition XGate : Square 2 := fun (i j : nat) =>
     match (i, j) with
@@ -72,11 +72,14 @@ Axiom RZGate_correct :
     forall (theta : R),
       matrix_exponential (scale (-Ci * theta / 2) ZGate) (RZGate theta).
 
-(* Tell me it ain't so *)
-Parameter RIGate : R -> Square 2.
-(* At least prove this... *)
-Axiom RIGate_correct : forall (theta : R),
-	matrix_exponential (scale (-Ci * theta / 2) (I 2)) (RIGate theta).
+(* Have to do this since global phase isn't eliminated *)
+Definition RIGate (theta : R) := scale (Cexp (-theta / 2)) (I 2).
+
+Lemma RIGate_correct :
+  forall (theta : R),
+    matrix_exponential (scale (-Ci * theta / 2) (I 2)) (RIGate theta).
+Proof.
+Admitted.
 
 Definition PauliToExpM (p : Pauli) (theta : R) :=
   match p with
