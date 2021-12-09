@@ -452,8 +452,14 @@ Proof.
   destruct (ham_commute_terms P H1 H2 Hcomm) as [M1 [M2 [HM1 [HM2 HMcomm]]]]. clear Hcomm.
   unfold sem_term in HH1. rewrite HM1 in HH1. inversion HH1 as [Hd HS1]. clear HH1.
   unfold sem_term in HH2. rewrite HM2 in HH2. inversion HH2 as [Hd2 HS2]. clear HH2 Hd2.
-  remember (mat_exp_well_defined (- Ci * sem_HScalar (Duration H1) .* M1
-     .+ - Ci * sem_HScalar (Duration H2) .* M2)) as HM12_.
+  assert (Hherm : Herm (- Ci * sem_HScalar (Duration H1) .* M1
+                                           .+ - Ci * sem_HScalar (Duration H2) .* M2)). {
+    apply herm_plus; apply herm_scale.
+    - eapply term_herm. apply HH1'. apply HM1.
+    - eapply term_herm. apply HH2'. apply HM2.
+  }
+  remember (mat_exp_well_defined_herm (- Ci * sem_HScalar (Duration H1) .* M1
+     .+ - Ci * sem_HScalar (Duration H2) .* M2) Hherm) as HM12_.
   inversion HM12_ as [S12 HM12]. clear HeqHM12_ HM12_.
   unfold Mat_commute. subst.
   assert (H : S1 × S2 = S12). {
@@ -506,13 +512,17 @@ Qed.
 Lemma term_semantics_WF {n : nat} : forall (P : H_Program) (T : HSF_Term) (S : Square n),
     sem_term P T S -> WF_Matrix S.
 Proof.
-  intros P T S HT. unfold sem_term in HT.
+  intros P T S HT. remember HT as HT'. clear HeqHT'. unfold sem_term in HT.
   destruct (interpret_term P T) as [M |] eqn:E; try contradiction.
   inversion HT as [Hdims HS]. clear HT. subst.
+  remember E as E'. clear HeqE'.
   apply interpret_term_WF in E.
-  eapply mat_exp_WF.
+  eapply mat_exp_WF_herm.
+  - eapply term_herm.
+    + apply HT'.
+    + apply E'.
   - apply HS.
-  - apply WF_scale. apply E.
+  - apply E.
 Qed.  
     
 (* This lemma is not currently needed.

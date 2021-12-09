@@ -14,7 +14,8 @@ Definition Diagonal {n : nat} (A : Square n) :=
   forall i j, i <> j ->  A i j = 0.
 
 Definition Diagonalization {n : nat} (Tinv D T M : Square n) : Prop :=
-  Diagonal D /\ Minv T Tinv /\ M = Tinv × D × T.
+  Diagonal D /\ Minv T Tinv /\ M = Tinv × D × T /\
+  WF_Matrix Tinv /\ WF_Matrix D /\ WF_Matrix T. 
 
 Definition Diagonalizable {n : nat} (A : Square n) :=
   exists (Tinv D T : Square n),
@@ -146,9 +147,25 @@ Proof.
 
 Theorem exp_diag_correct {n : nat} (M M_exp : Square n) :
     Diagonalizable M -> matrix_exponential M M_exp <-> is_exp_diag M M_exp.
-Proof.
-    Admitted.
+Proof. Admitted.
 
+Lemma exp_diag_preserves_WF {n : nat} :
+  forall (D : Square n), WF_Matrix D -> Diagonal D -> @WF_Matrix n n (exp_diag D).
+Proof.
+  intros D HWF HD i j H. unfold exp_diag.
+  destruct (i =? j) eqn:E.
+  - apply beq_nat_true in E. subst. destruct (j <? n) eqn:F.
+    + exfalso. apply Nat.ltb_lt in F. lia.
+    + auto.
+  - rewrite andb_false_r. auto.
+Qed.
+  
+Lemma exp_diag_preserves_diag {n : nat} :
+  forall (D : Square n), Diagonal D -> @Diagonal n (exp_diag D).
+Proof.
+  intros D H i j Hij. unfold exp_diag. apply eqb_neq in Hij.
+  rewrite Hij. rewrite andb_false_r. reflexivity.
+Qed.
 
 Lemma diag_scale {n : nat} : forall (M : Square n) (c : C),
     Diagonalizable M -> Diagonalizable (c .* M).
@@ -168,7 +185,24 @@ Lemma exp_diag_preserves_equality {n : nat} :
     A × (exp_diag B) × C = D × (exp_diag E) × F.
 Proof. Admitted.
 
-Lemma mat_exp_unique_herm {n : nat} : forall (M Mexp1 Mexp2 : Square n) (c : C),
+Theorem mat_exp_well_defined_herm {n : nat} : forall (M : Square n),
+    Herm M -> exists (Mexp : Square n), matrix_exponential M Mexp.
+Proof.
+  intros M H. 
+  remember (herm_diagonalizable M H) as Hd. clear HeqHd.
+  unfold Diagonalizable in Hd.
+  destruct Hd as [Tinv [D [T [H1 [H2 [H3 [H4 [H5 H6]]]]]]]].
+  exists (Tinv × (exp_diag D) × T).
+  rewrite exp_diag_correct; try apply herm_diagonalizable; auto.
+  unfold is_exp_diag.
+  exists Tinv. exists D. exists T. split.
+  - unfold Diagonalization; tauto.
+  - unfold Diagonalization. repeat (try split; try tauto).
+    + apply exp_diag_preserves_diag; auto.
+    + apply exp_diag_preserves_WF; auto.
+Qed.
+    
+Theorem mat_exp_unique_herm {n : nat} : forall (M Mexp1 Mexp2 : Square n) (c : C),
     Herm M ->
     matrix_exponential (c .* M) Mexp1 ->
     matrix_exponential (c .* M) Mexp2 ->
@@ -185,13 +219,26 @@ Proof.
       assert (H1 : T1inv × (exp_diag D1) × T1 = T2inv × (exp_diag D2) × T2). {
         apply exp_diag_preserves_equality; unfold Diagonalization in *; tauto.
       }
-      destruct HeD1 as [_ [_ H2]]. destruct HeD2 as [_ [_ H3]].
+      destruct HeD1 as [_ [_ [H2 [_ [_ _]]]]].
+      destruct HeD2 as [_ [_ [H3 [_ [_ _]]]]].
       rewrite H2. rewrite H3. auto.
     + apply diag_scale; auto.
   - apply diag_scale; auto.
 Qed.
 
-Lemma mat_exp_commute_add_herm {n : nat} : forall (M N SM SN SMN : Square n),
+Theorem mat_exp_WF_herm {n : nat} : forall (M Mexp : Square n) (c : C),
+    Herm M -> matrix_exponential (c .* M) Mexp -> WF_Matrix M -> WF_Matrix Mexp.
+Proof. Admitted. (*
+  intros M Mexp Hherm HM H_WF.
+  rewrite (exp_diag_correct M Mexp) in HM; try apply herm_diagonalizable; auto.
+  destruct HM as [Tinv [D [T [HD HeD]]]].
+  destruct HD as  [H1 [H2 [H3 [H4 [H5 H6]]]]].
+  destruct HeD as [H7 [H8 [H9 [H10 [H11 H12]]]]].
+  rewrite H9. apply WF_mult; auto.
+  apply WF_mult; auto.
+Qed.*)
+
+Theorem mat_exp_commute_add_herm {n : nat} : forall (M N SM SN SMN : Square n),
     Herm M ->
     Herm N ->
     matrix_exponential M SM ->
@@ -199,4 +246,15 @@ Lemma mat_exp_commute_add_herm {n : nat} : forall (M N SM SN SMN : Square n),
     matrix_exponential (M .+ N) SMN ->
     Mat_commute M N ->
     SM × SN = SMN.
-Proof. Admitted.
+Proof.
+  intros M N SM SN SMN HM HN HSM HSN HSMN Hcomm.
+  rewrite (exp_diag_correct M SM) in HSM; try apply herm_diagonalizable; auto.
+  rewrite (exp_diag_correct N SN) in HSN; try apply herm_diagonalizable; auto.
+  rewrite (exp_diag_correct (M .+ N) SMN) in HSMN;
+    try (apply herm_diagonalizable; apply herm_plus; auto).  
+  destruct HSM as [TMinv [DM [TM [HDM [HeDM [_ [_ _]]]]]]].
+  destruct HSN as [TNinv [DN [TN [HDN [HeDN [_ [_ _]]]]]]].
+  destruct HSMN as [TMNinv [DMN [TMN [HDMN [HeDMN [_ [_ _]]]]]]].
+  Admitted.
+
+
