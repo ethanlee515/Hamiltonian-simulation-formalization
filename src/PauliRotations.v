@@ -4,10 +4,10 @@ Require Import MatrixExponential.
 Require Import Diagonalization.
 
 Inductive Pauli :=
-    | Pauli_I
-    | Pauli_X
-    | Pauli_Y
-    | Pauli_Z.
+| Pauli_I
+| Pauli_X
+| Pauli_Y
+| Pauli_Z.
 
 Definition XGate : Square 2 := fun (i j : nat) =>
     match (i, j) with
@@ -15,7 +15,7 @@ Definition XGate : Square 2 := fun (i j : nat) =>
     | (1, 0) => RtoC 1
     | _ => RtoC 0
     end.
-
+    
 Definition YGate : Square 2 := fun (i j : nat) =>
     match (i, j) with
     | (0, 1) => -Ci
@@ -53,23 +53,60 @@ Definition PauliToMatrix (p : Pauli) : Square 2 :=
     end.
 
 (* Implemented by Qiskit *)
+(* Maybe we should write the matrices out anyways? *)
 Parameter RXGate : R -> Square 2.
 Parameter RYGate : R -> Square 2.
 Parameter RZGate : R -> Square 2.
 Parameter RXXGate : R -> Square 4.
 Parameter RZZGate : R -> Square 4.
 
-Axiom RXGate_Correct :
+Axiom RXGate_correct :
     forall (theta : R),
-        matrix_exponential ((scale theta XGate)) (RXGate theta).
+        matrix_exponential (scale (-Ci * theta / 2) XGate) (RXGate theta).
 
-Axiom RYGate_Correct :
+Axiom RYGate_correct :
     forall (theta : R),
-        matrix_exponential ((scale theta YGate)) (RYGate theta).
+        matrix_exponential (scale (-Ci * theta / 2) YGate) (RYGate theta).
 
-Axiom RZGate_Correct :
+Axiom RZGate_correct :
     forall (theta : R),
-        matrix_exponential ((scale theta ZGate)) (RZGate theta).
+      matrix_exponential (scale (-Ci * theta / 2) ZGate) (RZGate theta).
+
+(* Have to do this since global phase isn't eliminated *)
+Definition RIGate (theta : R) := scale (Cexp (-theta / 2)) (I 2).
+
+Lemma RIGate_correct :
+  forall (theta : R),
+    matrix_exponential (scale (-Ci * theta / 2) (I 2)) (RIGate theta).
+Proof.
+Admitted.
+
+Definition PauliToExpM (p : Pauli) (theta : R) :=
+  match p with
+  | Pauli_I => RIGate theta
+  | Pauli_X => RXGate theta
+  | Pauli_Y => RYGate theta
+  | Pauli_Z => RZGate theta
+  end.
+
+Lemma PauliToExpM_correct :
+  forall (p : Pauli) (theta : R),
+    matrix_exponential (scale (-Ci * theta / 2) (PauliToMatrix p)) (PauliToExpM p theta).
+Proof.
+  intros.
+  induction p.
+  apply RIGate_correct.
+  apply RXGate_correct.
+  apply RYGate_correct.
+  apply RZGate_correct.
+Qed.
+
+Lemma PauliToExpM_correct2t :
+  forall (p : Pauli) (theta2 : R),
+    matrix_exponential (scale (-Ci * theta2) (PauliToMatrix p)) (PauliToExpM p (2 * theta2)).
+Proof.
+  (* Arithmetics...... *)
+Admitted.
 
 Definition RXYGate (t : R) : Square 4 :=
     (* TODO *) fun (i j : nat) => 0.
