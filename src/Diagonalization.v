@@ -7,8 +7,11 @@ Require Import Init.Tauto.
      -----  Definitions  -----
  *)
 
-Definition Herm {n: nat} (A : Square n) : Prop :=
+Definition Herm {n : nat} (A : Square n) : Prop :=
   forall i j, (A i j) = Cconj (A j i).
+
+Definition Herm_alternate {n : nat} (A : Square n) :=
+  A = A †.
 
 Definition Diagonal {n : nat} (A : Square n) :=
   forall i j, i <> j ->  A i j = 0.
@@ -43,6 +46,19 @@ Definition Mat_commute {n : nat} (A B : Square n) :=
      -----  Theorems  -----
  *)
 
+Lemma herm_defs_equivalent {n : nat} (A : Square n) :
+  WF_Matrix A -> Herm A <-> Herm_alternate A.
+Proof.
+  intros HWF. split; intros H; unfold Herm, Herm_alternate in *.
+  - apply mat_equiv_eq; auto.
+    + apply WF_adjoint; auto.
+    + intros i j Hi Hj.
+      unfold adjoint. apply H.
+  - intros i j. unfold adjoint in H.
+    remember (equal_f (equal_f H i) j) as E. clear HeqE.
+    rewrite E. reflexivity.
+Qed.
+      
 Lemma real_neg_neq : forall (x : R), x <> 0 -> x <> Ropp x.
 Proof.
   intros. intros H1.
@@ -106,8 +122,17 @@ Qed.
   
 (* The converse of this is also true *)
 Lemma herm_mult {n : nat} : forall (A B : Square n),
-    Herm A -> Herm B -> Mat_commute A B -> Herm (A × B).
-Proof. Admitted.
+    WF_Matrix A -> WF_Matrix B ->
+    Herm A -> Herm B ->
+    Mat_commute A B ->
+    Herm (A × B).
+Proof.
+  intros A B WFA WFB HA HB Hcomm. rewrite herm_defs_equivalent.
+  - unfold Herm_alternate. rewrite Mmult_adjoint.
+    rewrite herm_defs_equivalent in HA, HB; auto.
+    rewrite <- HA. rewrite <- HB. apply Hcomm.
+  - apply WF_mult; auto.
+Qed.
 
 Lemma herm_kron {n m : nat} : forall (A : Square n) (B : Square m),
     Herm A -> Herm B -> Herm (A ⊗ B).
@@ -135,13 +160,6 @@ Theorem herm_diagonalizable {n : nat} (A : Square n) :
   Herm A -> Diagonalizable A.
 Proof.
 Admitted.
-    
-(* Diagonal matrices commute *)
-Lemma diag_commute {n : nat} :
-  forall (D1 D2 : Square n), Diagonal D1 -> Diagonal D2 -> Mat_commute D1 D2.
-Proof.
-  (* Not 100% sure we'll need this lemma. Might want to wait to complete the proof *)
-  Admitted.
 
 
 (* Commuting diagonalizable matrices are simultaneously diagonalizable *)
@@ -164,6 +182,7 @@ Proof.
 Theorem exp_diag_correct {n : nat} (M M_exp : Square n) :
     Diagonalizable M -> matrix_exponential M M_exp <-> is_exp_diag M M_exp.
 Proof. Admitted.
+(* We only really need to show the -> direction *)
 
 Lemma exp_diag_preserves_WF {n : nat} :
   forall (D : Square n), WF_Matrix D -> Diagonal D -> @WF_Matrix n n (exp_diag D).
@@ -217,11 +236,13 @@ Proof.
 Qed.
 
 Lemma exp_diag_preserves_equality {n : nat} :
-  forall (A B C D E F : Square n),
-    Diagonal B -> Diagonal E ->
-    A × B × C = D × E × F ->
-    A × (exp_diag B) × C = D × (exp_diag E) × F.
-Proof. Admitted.
+  forall (T1inv D1 T1 T2inv D2 T2 M : Square n),
+    Diagonalization T1inv D1 T1 M -> Diagonalization T2inv D2 T2 M ->
+    T1inv × (exp_diag D1) × T1 = T2inv × (exp_diag D2) × T2.
+Proof.
+  intros T1inv D1 T1 T2inv D2 T2 M H1 H2.
+  remember (equivalent_diagonalizations T1inv D1 T1 T2inv D2 T2 M H1 H2) as H. clear HeqH.
+Admitted.
 
 
 
@@ -255,21 +276,17 @@ Theorem mat_exp_unique_diag {n : nat} : forall (M Mexp1 Mexp2 : Square n),
     Mexp1 = Mexp2.
 Proof.
   intros M Mexp1 Mexp2 Hdiag H1 H2.
-  rewrite (exp_diag_correct M Mexp1) in H1.
-  - destruct H1 as [T1inv [D1 [T1 [HD1 HeD1]]]].
-    rewrite (exp_diag_correct M Mexp2) in H2.
-    + destruct H2 as [T2inv [D2 [T2 [HD2 HeD2]]]].
-      assert (H : T1inv × D1 × T1 = T2inv × D2 × T2). {
-        apply equivalent_diagonalizations with M; assumption.
-      }
-      assert (H1 : T1inv × (exp_diag D1) × T1 = T2inv × (exp_diag D2) × T2). {
-        apply exp_diag_preserves_equality; unfold Diagonalization in *; tauto.
-      }
-      destruct HeD1 as [_ [_ [H2 [_ [_ _]]]]].
-      destruct HeD2 as [_ [_ [H3 [_ [_ _]]]]].
-      rewrite H2. rewrite H3. auto.
-    + auto.
-  - auto.
+  rewrite (exp_diag_correct M Mexp1) in H1; auto.
+  destruct H1 as [T1inv [D1 [T1 [HD1 HeD1]]]].
+  rewrite (exp_diag_correct M Mexp2) in H2; auto.
+  destruct H2 as [T2inv [D2 [T2 [HD2 HeD2]]]].
+  assert (H : T1inv × D1 × T1 = T2inv × D2 × T2). {
+    apply equivalent_diagonalizations with M; assumption.
+  }
+  destruct HeD1 as [_ [_ [H2 [_ [_ _]]]]].
+  destruct HeD2 as [_ [_ [H3 [_ [_ _]]]]].
+  rewrite H2. rewrite H3.
+  apply exp_diag_preserves_equality with M; unfold Diagonalization in *; tauto.
 Qed.
 
 
@@ -314,15 +331,17 @@ Theorem mat_exp_commute_add_diag {n : nat} : forall (M N SM SN SMN : Square n),
     matrix_exponential (M .+ N) SMN ->
     Mat_commute M N ->
     SM × SN = SMN.
-Proof. Admitted. (*
-  intros M N SM SN SMN c1 c2 HM HN HSM HSN HSMN Hcomm.
-  rewrite (exp_diag_correct M SM) in HSM; try apply herm_diagonalizable; auto.
-  rewrite (exp_diag_correct N SN) in HSN; try apply herm_diagonalizable; auto.
-  rewrite (exp_diag_correct (M .+ N) SMN) in HSMN;
-    try (apply herm_diagonalizable; apply herm_plus; auto).  
+Proof. Admitted.
+  (* This theorem statement is currently not provable, because Diagonalizable (M + N) is not 
+     true in general.
+  
+  intros M N SM SN SMN HM HN HSM HSN HSMN Hcomm.
+  rewrite (exp_diag_correct M SM) in HSM; auto.
+  rewrite (exp_diag_correct N SN) in HSN; auto.
+  rewrite (exp_diag_correct (M .+ N) SMN) in HSMN. try (apply diag_plus; auto).  
   destruct HSM as [TMinv [DM [TM [HDM [HeDM [_ [_ _]]]]]]].
   destruct HSN as [TNinv [DN [TN [HDN [HeDN [_ [_ _]]]]]]].
   destruct HSMN as [TMNinv [DMN [TMN [HDMN [HeDMN [_ [_ _]]]]]]].
-  Admitted. *)
-
+  Admitted.
+*)
 

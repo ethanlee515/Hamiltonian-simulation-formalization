@@ -218,8 +218,11 @@ Proof.
 Qed.
 
 
+
+
 (* 
-   Lemmas showing that Hamiltonian terms are Hermitian 
+    Lemmas about the well-formedness of term interpretation
+    (i.e., interpret_term returns a well-formed matrix)
  *)
 
 Lemma declsToMat_pauli_or_I : forall x d l p,
@@ -233,103 +236,6 @@ Proof.
       * right. auto. 
     + apply IHd' in H. assumption. 
 Qed.
-
-Lemma interpret_HPauli_helper_herm :
-  forall (decls : list string) (label : string) (p : Pauli),
-    Herm (interpret_HPauli_helper decls label p).
-Proof. 
-  intros.
-  unfold interpret_HPauli_helper.
-  destruct decls. apply herm_I.
-  apply herm_big_kron.
-  rewrite Forall_forall. intros A H. apply declsToMat_pauli_or_I in H.
-  destruct H; subst.
-  - apply PauliToMatrix_herm.
-  - apply herm_I.
-Qed.  
-
-Lemma interpret_HPauli_herm :
-  forall (decls : list string) (p : HPauli) (M : Square (2 ^ List.length decls)),
-    interpret_HPauli decls p = Some M -> Herm M.
-Proof.
-  intros. destruct p eqn:Ep. unfold interpret_HPauli in H.
-  destruct (In_bool loc decls) eqn:Ein; try discriminate.
-  inversion H. 
-  apply interpret_HPauli_helper_herm.
-Qed.
-
-Lemma HPauli_terms_commute {n : nat} :
-  forall (decls : list string) (p : HPauli) (ps : list HPauli) (M1 M2 : Square n),
-    interpret_HPauli decls p = Some M1 ->
-    interpret_HPaulis decls ps = Some M2 ->
-    Mat_commute M1 M2.
-Proof. Admitted.
-(* This will likely require changing interpret_HPauli to ensure that no site receives more 
-   than one Pauli. The theorem statement will likely need to be adjusted too, with something
-   like ~(In p ps).
- *)
-
-Lemma interpret_HPaulis_herm :
-  forall (decls : list string) (ps : list HPauli) (M : Square (2 ^ List.length decls)),
-    interpret_HPaulis decls ps = Some M -> Herm M.
-Proof.
-  intros decls ps. generalize dependent decls.
-  induction ps as [|p ps']; intros.
-  - inversion H. apply herm_I.
-  - inversion H.
-    destruct (interpret_HPauli decls p) eqn:E1; try discriminate.
-    destruct (interpret_HPaulis decls ps') eqn:E2; try discriminate.
-    inversion H1. apply herm_mult.
-    + eapply interpret_HPauli_herm. apply E1.
-    + eapply IHps'. apply E2.
-    + eapply HPauli_terms_commute.
-      * apply E1.
-      * apply E2.
-Qed.
-
-Lemma interpret_TIH_Term_herm :
-  forall (decls : list string) (s : TIH_Term) (M : Square (2 ^ List.length decls)),
-    interpret_TIH_Term decls s = Some M -> Herm M.
-Proof.
-  intros. unfold interpret_TIH_Term in H.
-  destruct (interpret_HPaulis decls (hPaulis s)) eqn:E; try discriminate.
-  inversion H.
-  apply interpret_HPaulis_herm in E.
-  apply herm_scale. assumption.
-Qed.
-
-Lemma interpret_TIH_Terms_herm : 
-  forall (decls : list string) (ss : list TIH_Term) (M : Square (2 ^ List.length decls)),
-    interpret_TIH_Terms decls ss = Some M -> Herm M.
-Proof.
-  intros decls ss. generalize dependent decls. induction ss as [|t T].
-  - intros. inversion H. apply herm_Zero.
-  - intros. inversion H. destruct (interpret_TIH_Term decls t) eqn:E1.
-    + destruct (interpret_TIH_Terms decls T) eqn:E2.
-      * apply IHT in E2. inversion H1. apply herm_plus.
-        -- eapply interpret_TIH_Term_herm. apply E1.
-        -- assumption.
-      * discriminate.
-    + discriminate.
-Qed.
-
-Lemma term_herm {n : nat} : forall (P : H_Program) (T : HSF_Term) (S : Square n) H,
-    sem_term P T S -> interpret_term P T = Some H -> Herm H.
-Proof.
-  intros P T S H Hsem Hit.
-  unfold interpret_term in Hit. eapply interpret_TIH_Terms_herm.
-  apply Hit.
-Qed.
-
-Corollary term_diagonalizable {n : nat} : forall (P : H_Program) (T : HSF_Term) (S : Square n) H,
-    sem_term P T S -> interpret_term P T = Some H -> Diagonalizable H.
-Proof.
-  intros. apply herm_diagonalizable. eapply term_herm. apply H0. apply H1.
-Qed.
-
-(* 
-    Lemmas about term interpretation
- *)
 
 Lemma interpret_HPauli_helper_WF :
   forall (decls : list string) (label : string) (p : Pauli),
@@ -425,6 +331,110 @@ Proof.
   unfold dims in M. unfold count_sites in M.
   unfold interpret_term in Hit. assumption.
 Qed.
+
+
+
+
+(* 
+   Lemmas showing that Hamiltonian terms are Hermitian 
+ *)
+
+Lemma interpret_HPauli_helper_herm :
+  forall (decls : list string) (label : string) (p : Pauli),
+    Herm (interpret_HPauli_helper decls label p).
+Proof. 
+  intros.
+  unfold interpret_HPauli_helper.
+  destruct decls. apply herm_I.
+  apply herm_big_kron.
+  rewrite Forall_forall. intros A H. apply declsToMat_pauli_or_I in H.
+  destruct H; subst.
+  - apply PauliToMatrix_herm.
+  - apply herm_I.
+Qed.  
+
+Lemma interpret_HPauli_herm :
+  forall (decls : list string) (p : HPauli) (M : Square (2 ^ List.length decls)),
+    interpret_HPauli decls p = Some M -> Herm M.
+Proof.
+  intros. destruct p eqn:Ep. unfold interpret_HPauli in H.
+  destruct (In_bool loc decls) eqn:Ein; try discriminate.
+  inversion H. 
+  apply interpret_HPauli_helper_herm.
+Qed.
+
+Lemma HPauli_terms_commute {n : nat} :
+  forall (decls : list string) (p : HPauli) (ps : list HPauli) (M1 M2 : Square n),
+    interpret_HPauli decls p = Some M1 ->
+    interpret_HPaulis decls ps = Some M2 ->
+    Mat_commute M1 M2.
+Proof. Admitted.
+(* This will likely require changing interpret_HPauli to ensure that no site receives more 
+   than one Pauli. The theorem statement will likely need to be adjusted too, with something
+   like ~(In p ps).
+ *)
+
+Lemma interpret_HPaulis_herm :
+  forall (decls : list string) (ps : list HPauli) (M : Square (2 ^ List.length decls)),
+    interpret_HPaulis decls ps = Some M -> Herm M.
+Proof.
+  intros decls ps. generalize dependent decls.
+  induction ps as [|p ps']; intros.
+  - inversion H. apply herm_I.
+  - inversion H.
+    destruct (interpret_HPauli decls p) eqn:E1; try discriminate.
+    destruct (interpret_HPaulis decls ps') eqn:E2; try discriminate.
+    inversion H1. apply herm_mult.
+    + eapply interpret_HPauli_WF. apply E1.
+    + eapply interpret_HPaulis_WF. apply E2.
+    + eapply interpret_HPauli_herm. apply E1.
+    + eapply IHps'. apply E2.
+    + eapply HPauli_terms_commute.
+      * apply E1.
+      * apply E2.
+Qed.
+
+Lemma interpret_TIH_Term_herm :
+  forall (decls : list string) (s : TIH_Term) (M : Square (2 ^ List.length decls)),
+    interpret_TIH_Term decls s = Some M -> Herm M.
+Proof.
+  intros. unfold interpret_TIH_Term in H.
+  destruct (interpret_HPaulis decls (hPaulis s)) eqn:E; try discriminate.
+  inversion H.
+  apply interpret_HPaulis_herm in E.
+  apply herm_scale. assumption.
+Qed.
+
+Lemma interpret_TIH_Terms_herm : 
+  forall (decls : list string) (ss : list TIH_Term) (M : Square (2 ^ List.length decls)),
+    interpret_TIH_Terms decls ss = Some M -> Herm M.
+Proof.
+  intros decls ss. generalize dependent decls. induction ss as [|t T].
+  - intros. inversion H. apply herm_Zero.
+  - intros. inversion H. destruct (interpret_TIH_Term decls t) eqn:E1.
+    + destruct (interpret_TIH_Terms decls T) eqn:E2.
+      * apply IHT in E2. inversion H1. apply herm_plus.
+        -- eapply interpret_TIH_Term_herm. apply E1.
+        -- assumption.
+      * discriminate.
+    + discriminate.
+Qed.
+
+Lemma term_herm {n : nat} : forall (P : H_Program) (T : HSF_Term) (S : Square n) H,
+    sem_term P T S -> interpret_term P T = Some H -> Herm H.
+Proof.
+  intros P T S H Hsem Hit.
+  unfold interpret_term in Hit. eapply interpret_TIH_Terms_herm.
+  apply Hit.
+Qed.
+
+Corollary term_diagonalizable {n : nat} : forall (P : H_Program) (T : HSF_Term) (S : Square n) H,
+    sem_term P T S -> interpret_term P T = Some H -> Diagonalizable H.
+Proof.
+  intros. apply herm_diagonalizable. eapply term_herm. apply H0. apply H1.
+Qed.
+
+
 
 
 (*
