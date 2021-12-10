@@ -96,14 +96,14 @@ Proof.
   rewrite <- H. rewrite Cconj_R.
   reflexivity.
 Qed.
-
-Lemma herm_scale_WRONG {n : nat} : forall (M : Square n) (c : C),
-    Herm M -> Herm (c .* M).
-Proof. Admitted.
   
 Lemma herm_plus {n : nat} : forall (A B : Square n), Herm A -> Herm B -> Herm (A .+ B).
-Proof. Admitted.
-
+Proof.
+  intros. unfold Herm in *. intros i j.
+  unfold ".+". rewrite Cconj_plus_distr.
+  rewrite <- H. rewrite <- H0. reflexivity.
+Qed.
+  
 (* The converse of this is also true *)
 Lemma herm_mult {n : nat} : forall (A B : Square n),
     Herm A -> Herm B -> Mat_commute A B -> Herm (A × B).
@@ -176,14 +176,28 @@ Proof.
   rewrite Hij. rewrite andb_false_r. reflexivity.
 Qed.
 
+Lemma diagonal_scale {n : nat} : forall (M : Square n) (c : C),
+    Diagonal M -> Diagonal (c .* M).
+Proof. 
+  intros. unfold Diagonal in *. intros i j Hij.
+  unfold ".*". assert (H1 : M i j = 0). apply H. apply Hij.
+  rewrite H1. apply Cmult_0_r.
+Qed.
+  
 Lemma diag_scale {n : nat} : forall (M : Square n) (c : C),
     Diagonalizable M -> Diagonalizable (c .* M).
-Proof. Admitted.
+Proof.
+  intros. unfold Diagonalizable in *.
+  destruct H as [Tinv [D [T [H1 [H2 [H3 [H4 [H5 H6]]]]]]]].
+  exists Tinv, (c .* D), T. unfold Diagonalization.
+  repeat (split; try tauto).
+  - apply diagonal_scale. auto.
+  - rewrite Mscale_mult_dist_r. rewrite Mscale_mult_dist_l.
+    rewrite <- H3. reflexivity.
+  - apply WF_scale. auto.
+Qed.
 
-Lemma diag_plus {n : nat} : forall (A B : Square n),
-    Diagonalizable A -> Diagonalizable B -> Diagonalizable (A .+ B).
-Proof. Admitted.
-
+  
 Lemma equivalent_diagonalizations {n : nat}:
   forall (T1inv D1 T1 T2inv D2 T2 M : Square n),
     Diagonalization T1inv D1 T1 M ->

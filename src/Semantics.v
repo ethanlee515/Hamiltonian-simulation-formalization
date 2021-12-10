@@ -459,9 +459,10 @@ Proof.
   unfold sem_term in HH2. rewrite HM2 in HH2. inversion HH2 as [Hd2 HS2]. clear HH2 Hd2.
   assert (Hherm : Diagonalizable (- Ci * sem_HScalar (Duration H1) .* M1
                                            .+ - Ci * sem_HScalar (Duration H2) .* M2)). {
-    apply diag_plus; apply diag_scale.
-    - eapply term_diagonalizable. apply HH1'. apply HM1.
-    - eapply term_diagonalizable. apply HH2'. apply HM2.
+    repeat (rewrite <- Mscale_assoc). rewrite <- Mscale_plus_distr_r.
+    apply diag_scale. apply herm_diagonalizable. apply herm_plus; apply herm_scale.
+    - eapply term_herm. apply HH1'. apply HM1.
+    - eapply term_herm. apply HH2'. apply HM2.
   }
   remember (mat_exp_well_defined_diag (- Ci * sem_HScalar (Duration H1) .* M1
       .+ - Ci * sem_HScalar (Duration H2) .* M2) Hherm) as HM12_.
