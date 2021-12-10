@@ -29,19 +29,37 @@ Definition seq_conv (X : Metric_Space) (seq : nat -> Base X) (lim : Base X) :=
  *)
 
 Definition inftyNorm_lb {n : nat} (m : Square n) (lb : R) :=
-    exists i j, lb < Cmod (m i j).
+    exists i j, lb < Cmod (m i j).  
 
 Lemma ex_inftyNorm_lb {n : nat} (m : Square n) :
     exists lb, inftyNorm_lb m lb.
 Proof.
-    (* exists Zero. *)
-    Admitted.
-    
-Lemma inftyNorm_ub {n : nat} (m : Square n) :
-    bound (inftyNorm_lb m).
+  exists (-1). unfold inftyNorm_lb. unfold Cmod. exists 0%nat, 0%nat.
+  assert (H :0 <=  √ (fst (m 0%nat 0%nat) ^ 2 + snd (m 0%nat 0%nat) ^ 2)).
+  - apply sqrt_pos.
+  - lra.
+Qed.
+
+Definition Cmod_elem (f : nat -> nat -> C) (i j : nat) := Cmod (f i j).
+
+Fixpoint matrix_sum {n : nat} (row : nat) (M : Square n) : R :=
+  match row with
+  | 0 => (Rsum n (Cmod_elem M 0%nat))
+  | S row' => (Rsum n (Cmod_elem M row)) + (matrix_sum row' M)
+  end.
+
+Lemma inftyNorm_ub {n : nat} (M : Square n) :
+    bound (inftyNorm_lb M).
 Proof.
-    (* This is annoying *)
-    Admitted.
+  unfold bound.
+  exists (matrix_sum (n-1) M).
+  assert (Hub : forall i j, Cmod (M i j) <= matrix_sum (n-1) M). {
+    intros i j. admit. (* I don't think this is provable without well-formedness :(   *)
+  }
+  unfold is_upper_bound. intros x.
+  unfold inftyNorm_lb. intros [i [j H]].
+  remember (Hub i j). lra.
+Admitted.
 
 Definition inftyNorm_inst {n : nat} (m : Square n) :=
     completeness (inftyNorm_lb m) (inftyNorm_ub m) (ex_inftyNorm_lb m).

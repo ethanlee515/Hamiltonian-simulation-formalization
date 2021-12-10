@@ -111,7 +111,14 @@ Proof. Admitted.
 
 Lemma herm_kron {n m : nat} : forall (A : Square n) (B : Square m),
     Herm A -> Herm B -> Herm (A ⊗ B).
-Proof. Admitted.
+Proof.
+  intros A B HA HB.
+  unfold Herm in *. intros i j.
+  unfold kron. rewrite Cconj_mult_distr.
+  rewrite <- (HA (i / m)%nat (j / m)%nat).
+  rewrite <- (HB (i mod m)%nat (j mod m)%nat).
+  reflexivity.
+Qed.
 
 Lemma herm_big_kron {n : nat} : forall (L : list (Square n)),
     Forall Herm L -> Herm (⨂ L).
@@ -196,14 +203,18 @@ Proof.
     rewrite <- H3. reflexivity.
   - apply WF_scale. auto.
 Qed.
-
   
 Lemma equivalent_diagonalizations {n : nat}:
   forall (T1inv D1 T1 T2inv D2 T2 M : Square n),
     Diagonalization T1inv D1 T1 M ->
     Diagonalization T2inv D2 T2 M ->
     T1inv × D1 × T1 = T2inv × D2 × T2.
-Proof. Admitted.
+Proof.
+  intros T1inv D1 T1 T2inv D2 T2 M Hd1 Hd2.
+  destruct Hd1 as [_ [_ [H1 _]]].
+  destruct Hd2 as [_ [_ [H2 _]]].
+  subst. auto.
+Qed.
 
 Lemma exp_diag_preserves_equality {n : nat} :
   forall (A B C D E F : Square n),
