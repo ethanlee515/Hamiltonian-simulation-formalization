@@ -41,3 +41,6 @@ Record H_Program := makeHProg
     Decls : list string;
     Terms : list HSF_Term;
 }.
+
+Definition h_bar : R := (6.62607015 / (10 ^ 34)) / (2 * PI).
+Definition one_over_h_bar : R := 1 / h_bar.
