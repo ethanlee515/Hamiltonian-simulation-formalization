@@ -1,21 +1,35 @@
+(***************************************************************************************)
+(**                                 Diagonalization.v                                 **)
+(**                                                                                   **)
+(** Defining and proving facts about Hermitian and diagonalizable matrices, including **)
+(** on the exponentiation of diagonalizable matrices.                                 **)
+(**                                                                                   **)
+(***************************************************************************************)
+
+(* 
+*)
 Require Import Reals.
 Require Import QWIRE.Matrix.
 Require Import MatrixExponential.
 Require Import Init.Tauto.
 
-(*
-     -----  Definitions  -----
- *)
+(**********************************)
+(** Linear Algebraic Definitions **)
+(**********************************)
 
+(* Element-wise definition of Hermitian *)
 Definition Herm {n : nat} (A : Square n) : Prop :=
   forall i j, (A i j) = Cconj (A j i).
 
+(* Adjoint definition of Hermitian *)
 Definition Herm_alternate {n : nat} (A : Square n) :=
   A = A †.
 
-Definition Diagonal {n : nat} (A : Square n) :=
-  forall i j, i <> j ->  A i j = 0.
+(* D is a diagonal matrix if the following conditions are met *)
+Definition Diagonal {n : nat} (D : Square n) :=
+  forall i j, i <> j ->  D i j = 0.
 
+(* Tinv × D × T is a diagonalization of M if the following conditions are met *)
 Definition Diagonalization {n : nat} (Tinv D T M : Square n) : Prop :=
   Diagonal D /\ Minv T Tinv /\ M = Tinv × D × T /\
   WF_Matrix Tinv /\ WF_Matrix D /\ WF_Matrix T. 
@@ -24,28 +38,31 @@ Definition Diagonalizable {n : nat} (A : Square n) :=
   exists (Tinv D T : Square n),
     Diagonalization Tinv D T A.
 
-(* element-wise exponentiation of a diagonal matrix *)
+(* Element-wise exponentiation of a diagonal matrix *)
 Definition exp_diag {n : nat} (D : Square n) :=
   (fun i j => if (i <? n) && (i =? j) then exp (fst (D i j)) else 0).
 
+(* Exponentiation of a diagonalizable matrix *)
 Definition is_exp_diag {n : nat} (M M_exp : Square n) : Prop :=
   exists (Tinv D T : Square n),
     Diagonalization Tinv D T M /\ Diagonalization Tinv (exp_diag D) T M_exp.
 
-(* Simultaneously diagonalizable *)
+(* Two matrices are simultaneously diagonalizable if the following conditions are met *)
 Definition Sim_diag {n : nat} (A B : Square n) :=
   exists (T Tinv M1 M2 : Square n),
     Diagonalization Tinv A T M1 /\ Diagonalization Tinv B T M2.
 
+(* Definition of matrix commutation *)
 Definition Mat_commute {n : nat} (A B : Square n) :=
   A × B = B × A.
 
 
 
-(*
-     -----  Theorems  -----
- *)
+(************************************************)
+(** Lemmas on properties of Hermitian matrices **)
+(************************************************)
 
+(* Element-wise and matrix definitions of Hermitian are equivalent *)
 Lemma herm_defs_equivalent {n : nat} (A : Square n) :
   WF_Matrix A -> Herm A <-> Herm_alternate A.
 Proof.
@@ -58,7 +75,8 @@ Proof.
     remember (equal_f (equal_f H i) j) as E. clear HeqE.
     rewrite E. reflexivity.
 Qed.
-      
+
+(* Helper lemma for herm_diag_real *)
 Lemma real_neg_neq : forall (x : R), x <> 0 -> x <> Ropp x.
 Proof.
   intros. intros H1.
@@ -76,6 +94,7 @@ Proof.
     contradiction.
 Qed.
 
+(* Hermitian matrices have real elements on the main diagonal *)
 Lemma herm_diag_real {n : nat} (A : Square n) :
   forall (i : nat) (x : C), Herm A -> (i < n)%nat -> A i i = x -> snd x = 0.
 Proof.
@@ -88,12 +107,14 @@ Proof.
   - apply real_neg_neq in H3. contradiction.
 Qed.
 
+(* Zero matrix is Hermitian *)
 Lemma herm_Zero {n : nat} : Herm (@Zero n n).
 Proof.
-  intros i j. unfold Cconj.  unfold Zero. simpl.
+  intros i j. unfold Cconj. unfold Zero. simpl.
   rewrite Ropp_0. reflexivity.
 Qed.
 
+(* Identity matrix is Hermitian *)
 Lemma herm_I {n : nat} : Herm (I n).
 Proof.
   unfold Herm. unfold Cconj. unfold I.
@@ -104,6 +125,7 @@ Proof.
   - simpl. rewrite Ropp_0; reflexivity.
 Qed.
 
+(* Real scalar times Hermitian matrix is Hermitian *)
 Lemma herm_scale {n : nat} : forall (M : Square n) (r : R),
     Herm M -> Herm (r .* M).
 Proof.
@@ -112,14 +134,16 @@ Proof.
   rewrite <- H. rewrite Cconj_R.
   reflexivity.
 Qed.
-  
+
+(* Sum of Hermitian matrices is Hermitian *)
 Lemma herm_plus {n : nat} : forall (A B : Square n), Herm A -> Herm B -> Herm (A .+ B).
 Proof.
   intros. unfold Herm in *. intros i j.
   unfold ".+". rewrite Cconj_plus_distr.
   rewrite <- H. rewrite <- H0. reflexivity.
 Qed.
-  
+
+(* Product of Hermitian matrices is Hermitian if they commute *)
 (* The converse of this is also true *)
 Lemma herm_mult {n : nat} : forall (A B : Square n),
     WF_Matrix A -> WF_Matrix B ->
@@ -134,6 +158,7 @@ Proof.
   - apply WF_mult; auto.
 Qed.
 
+(* Kronecker product of Hermitian matrices is Hermitian *)
 Lemma herm_kron {n m : nat} : forall (A : Square n) (B : Square m),
     Herm A -> Herm B -> Herm (A ⊗ B).
 Proof.
@@ -145,6 +170,7 @@ Proof.
   reflexivity.
 Qed.
 
+(* Kronecker product of many Hermitian matrices is Hermitian *)
 Lemma herm_big_kron {n : nat} : forall (L : list (Square n)),
     Forall Herm L -> Herm (⨂ L).
 Proof.
@@ -156,52 +182,21 @@ Proof.
     + apply IHL'. apply Forall_inv_tail with A. assumption.
 Qed.
 
+(* Hermitian matrices are diagonalizable *)
+(* Tricky proof because it involves eigenvalues and eigenvectors; ran out of time to 
+   support these *)
 Theorem herm_diagonalizable {n : nat} (A : Square n) :
   Herm A -> Diagonalizable A.
 Proof.
 Admitted.
 
 
-(* Commuting diagonalizable matrices are simultaneously diagonalizable *)
-Theorem Commute_sim_diag {n : nat} :
-  forall (A B : Square n),
-  Mat_commute A B ->
-  Diagonalizable A ->
-  Diagonalizable B ->
-  (* We might need the explicit diagonalizations for the proof :
-  forall TAinv TBinv DA DB TA TB
-  Diagonalization TAinv DA TA A ->
-  Diagonalization TBinv DB TB B ->
-  *)
-  Sim_diag A B.
-Proof.
-  (* This is gonna be a doozy *)
-  Admitted.
 
+(*******************************************)
+(** Lemmas on diagonalization of matrices **)
+(*******************************************)
 
-Theorem exp_diag_correct {n : nat} (M M_exp : Square n) :
-    Diagonalizable M -> matrix_exponential M M_exp <-> is_exp_diag M M_exp.
-Proof. Admitted.
-(* We only really need to show the -> direction *)
-
-Lemma exp_diag_preserves_WF {n : nat} :
-  forall (D : Square n), WF_Matrix D -> Diagonal D -> @WF_Matrix n n (exp_diag D).
-Proof.
-  intros D HWF HD i j H. unfold exp_diag.
-  destruct (i =? j) eqn:E.
-  - apply beq_nat_true in E. subst. destruct (j <? n) eqn:F.
-    + exfalso. apply Nat.ltb_lt in F. lia.
-    + auto.
-  - rewrite andb_false_r. auto.
-Qed.
-  
-Lemma exp_diag_preserves_diag {n : nat} :
-  forall (D : Square n), Diagonal D -> @Diagonal n (exp_diag D).
-Proof.
-  intros D H i j Hij. unfold exp_diag. apply eqb_neq in Hij.
-  rewrite Hij. rewrite andb_false_r. reflexivity.
-Qed.
-
+(* Scalar times diagonal matrix is diagonal *)
 Lemma diagonal_scale {n : nat} : forall (M : Square n) (c : C),
     Diagonal M -> Diagonal (c .* M).
 Proof. 
@@ -209,7 +204,8 @@ Proof.
   unfold ".*". assert (H1 : M i j = 0). apply H. apply Hij.
   rewrite H1. apply Cmult_0_r.
 Qed.
-  
+
+(* Scalar times diagonalizable matrix is diagonalizable *)
 Lemma diag_scale {n : nat} : forall (M : Square n) (c : C),
     Diagonalizable M -> Diagonalizable (c .* M).
 Proof.
@@ -222,7 +218,55 @@ Proof.
     rewrite <- H3. reflexivity.
   - apply WF_scale. auto.
 Qed.
-  
+
+(* Commuting diagonalizable matrices are simultaneously diagonalizable *)
+(* This proof is currently not needed so we have not attempted to prove it; however, we 
+   expect to need it in the future *)
+Theorem Commute_sim_diag {n : nat} :
+  forall (A B : Square n),
+  Mat_commute A B ->
+  Diagonalizable A ->
+  Diagonalizable B ->
+  (* We might need the explicit diagonalizations for the proof :
+  forall TAinv TBinv DA DB TA TB
+  Diagonalization TAinv DA TA A ->
+  Diagonalization TBinv DB TB B ->
+  *)
+  Sim_diag A B.
+Proof.
+  (* This is gonna be tricky *)
+  Admitted.
+
+(* If a matrix M is diagonalizable as M = T^t * D * T, then e^M = T^t * e^D * T *)
+(* This fact is true, but difficult to show because matrix_exponential is defined in terms 
+   of an infinite sum. This theorem was crucial however in simplifying many other proofs
+   involving matrix exponentials *)
+Theorem exp_diag_correct {n : nat} (M M_exp : Square n) :
+    Diagonalizable M -> matrix_exponential M M_exp <-> is_exp_diag M M_exp.
+Proof. Admitted.
+(* We only really need to show the -> direction *)
+
+(* e^D for diagonal matrix D is well-formed *)
+Lemma exp_diag_preserves_WF {n : nat} :
+  forall (D : Square n), WF_Matrix D -> Diagonal D -> @WF_Matrix n n (exp_diag D).
+Proof.
+  intros D HWF HD i j H. unfold exp_diag.
+  destruct (i =? j) eqn:E.
+  - apply beq_nat_true in E. subst. destruct (j <? n) eqn:F.
+    + exfalso. apply Nat.ltb_lt in F. lia.
+    + auto.
+  - rewrite andb_false_r. auto.
+Qed.
+
+(* e^D for diagonal matrix D is diagonal *)
+Lemma exp_diag_preserves_diag {n : nat} :
+  forall (D : Square n), Diagonal D -> @Diagonal n (exp_diag D).
+Proof.
+  intros D H i j Hij. unfold exp_diag. apply eqb_neq in Hij.
+  rewrite Hij. rewrite andb_false_r. reflexivity.
+Qed.
+
+(* 2 diagonalizations of the same matrix represent the same matrix *)
 Lemma equivalent_diagonalizations {n : nat}:
   forall (T1inv D1 T1 T2inv D2 T2 M : Square n),
     Diagonalization T1inv D1 T1 M ->
@@ -235,6 +279,7 @@ Proof.
   subst. auto.
 Qed.
 
+(* T1inv × D1 × T1 = T2inv × D2 × T2 implies T1inv × e^D1 × T1 = T2inv × e^D2 × T2 *)
 Lemma exp_diag_preserves_equality {n : nat} :
   forall (T1inv D1 T1 T2inv D2 T2 M : Square n),
     Diagonalization T1inv D1 T1 M -> Diagonalization T2inv D2 T2 M ->
@@ -246,7 +291,11 @@ Admitted.
 
 
 
+(***********************************)
+(** Main diagonalization theorems **)
+(***********************************)
 
+(* For any diagonalizable matrix M, there is at least one matrix Mexp s.t. e^M = Mexp *)
 Theorem mat_exp_well_defined_diag {n : nat} : forall (M : Square n),
     Diagonalizable M -> exists (Mexp : Square n), matrix_exponential M Mexp.
 Proof.
@@ -269,6 +318,7 @@ Proof.
   intros M H. apply mat_exp_well_defined_diag. apply herm_diagonalizable. auto.
 Qed.
 
+(* For any diagonalizable matrix M, there is at most one matrix Mexp s.t. e^M = Mexp *)
 Theorem mat_exp_unique_diag {n : nat} : forall (M Mexp1 Mexp2 : Square n),
     Diagonalizable M ->
     matrix_exponential M Mexp1 ->
@@ -289,7 +339,6 @@ Proof.
   apply exp_diag_preserves_equality with M; unfold Diagonalization in *; tauto.
 Qed.
 
-
 Corollary mat_exp_unique_herm {n : nat} : forall (M Mexp1 Mexp2 : Square n) (c : C),
     Herm M ->
     matrix_exponential (c .* M) Mexp1 ->
@@ -301,6 +350,7 @@ Proof.
   apply diag_scale. apply herm_diagonalizable. apply Hdiag.
 Qed.
 
+(* For any diagonalizable matrix M, e^M is well-formed *)
 Theorem mat_exp_WF_diag {n : nat} : forall (M Mexp : Square n),
     Diagonalizable M -> matrix_exponential M Mexp -> WF_Matrix M -> WF_Matrix Mexp.
 Proof.
@@ -323,6 +373,7 @@ Proof.
   - apply WF_scale. auto.
 Qed.
 
+(* For any diagonalizable matrices M and N, if M and N commute then e^M × e^N = e^{M+N} *)
 Theorem mat_exp_commute_add_diag {n : nat} : forall (M N SM SN SMN : Square n),
     Diagonalizable M ->
     Diagonalizable N ->
@@ -332,8 +383,8 @@ Theorem mat_exp_commute_add_diag {n : nat} : forall (M N SM SN SMN : Square n),
     Mat_commute M N ->
     SM × SN = SMN.
 Proof. Admitted.
-  (* This theorem statement is currently not provable, because Diagonalizable (M + N) is not 
-     true in general.
+  (* This theorem statement is mathematically true, but it is currently not provable using 
+     the lemmas we have so far, because Diagonalizable (M + N) is not true in general.
   
   intros M N SM SN SMN HM HN HSM HSN HSMN Hcomm.
   rewrite (exp_diag_correct M SM) in HSM; auto.

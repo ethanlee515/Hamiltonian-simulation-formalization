@@ -1,3 +1,13 @@
+(***************************************************************************************)
+(**                                    Semantics.v                                    **)
+(**                                                                                   **)
+(** Defining the semantics of Hamiltonians and Hamiltonian programs; i.e., the effect **)
+(** they have on quantum states. Also defining the interpretation of symbolic         **)
+(** Hamiltonians into matrices. The main theorem of this project is located at the    **)
+(** bottom of this file.                                                              **)
+(**                                                                                   **)
+(***************************************************************************************)
+
 Require Import HSF_Syntax.
 Require Import MatrixExponential.
 Require Import Diagonalization.
@@ -7,9 +17,14 @@ Require Import Lra.
 Open Scope matrix_scope.
 Open Scope list_scope.
 
-(*
-     -----  Definitions  -----
- *)
+
+(********************************************)
+(** Hamiltonian Interpretation Definitions **)
+(********************************************)
+
+(* Dimensionality of Hilbert space for Hamiltonian program *)
+Definition count_sites (prog : H_Program) := List.length (prog.(Decls)).
+Definition dims (P : H_Program) : nat := 2 ^ (count_sites P).
 
 Fixpoint sem_HScalar (sc : HScalar) : R :=
     match sc with
@@ -22,13 +37,6 @@ Fixpoint sem_HScalar (sc : HScalar) : R :=
     | HScSin s => sin (sem_HScalar s)
     | HScReal v s => v
     end.
-
-(* TODO Rewrite H_Program as record? *)
-Definition count_sites (prog : H_Program) := List.length (prog.(Decls)).
-
-(* this works for qubits, not sure about fock spaces... *)
-Definition dims (P : H_Program) : nat := 2 ^ (count_sites P).
-
 
 Fixpoint declsToMats (decls : list string) (label : string) (p : Pauli) : list (Square 2) :=
   match decls with
@@ -56,7 +64,6 @@ Definition interpret_HPauli {n : nat} (decls : list string) (p : HPauli)
 
 (* Alternative implementation of interpret_HPauli *)
 (* The above one is cleaner, but we also need this one for Trotterization *)
-
 Fixpoint find_qubit (decls : list string) (label : string) : option nat :=
   match decls with
   | [] => None
@@ -70,8 +77,6 @@ Fixpoint find_qubit (decls : list string) (label : string) : option nat :=
         | None => None
         end
   end.
-
-Print padIs.
 
 Definition interpret_HPauli' (decls : list string) (p : HPauli)
   : option (Square (2 ^ List.length decls)) :=
@@ -119,9 +124,16 @@ Fixpoint interpret_TIH_Terms {n : nat} (decls : list string) (ss : list TIH_Term
     | [] => Some Zero
     end.
 
-(* Convert a HSF term into a Hamiltonian operator (an n x n matrix) *)
+(* Main interpretation function:
+   Converts a HSF term into a Hamiltonian operator (an n x n matrix) *)
 Definition interpret_term (prog : H_Program) (term : HSF_Term) : option (Square (dims prog)) :=
     interpret_TIH_Terms prog.(Decls) term.(Hamiltonian).
+
+
+
+(***************************)
+(** Semantics Definitions **)
+(***************************)
 
 (* Relational definition of Hamiltonian semantics *)
 Definition sem_term {n : nat} (P : H_Program) (T : HSF_Term) (S : Square n) : Prop :=
@@ -137,14 +149,12 @@ Inductive NoDup {A : Type} : list A -> Prop :=
     | NoDup_nil : NoDup nil
     | NoDup_cons : forall x l, ~ In x l -> NoDup l -> NoDup (x::l).
 
-(* Inductive definition for valid programs *)
-(* Is the empty program valid? *)
+(* Definition of a valid program *)
 Definition program_valid (P : H_Program) : Prop :=
   (List.length (Decls P) > 0)%nat /\ NoDup (Decls P) /\
   forall (t : HSF_Term), In t (Terms P) -> In (TermId t) (Decls P).
 
 (* Inductive definition for semantics of programs *)
-(* I make use of "dims" here so this should work with both qubits and fock spaces *)
 Inductive sem_program {n : nat} : H_Program -> Square n -> Prop :=
   | sem_program_nil (D : list string)
                     (Hvalid : program_valid (makeHProg D []))
@@ -164,15 +174,11 @@ Definition ham_commute (P : H_Program) (T1 T2 : HSF_Term) : Prop :=
     | _ => False
     end.
 
-(*
-     -----  Lemmas and Theorems  -----
- *)
 
 
-
-(* 
-   Lemmas about terms and programs
- *)
+(****************************************)
+(** Lemmas about term/program validity **)
+(****************************************)
 
 Lemma semantics_implies_program_valid {n : nat} : forall (P : H_Program) (S : Square n),
     sem_program P S -> program_valid P.
@@ -221,10 +227,10 @@ Qed.
 
 
 
-(* 
-    Lemmas about the well-formedness of term interpretation
-    (i.e., interpret_term returns a well-formed matrix)
- *)
+(*************************************************************)
+(** Lemmas about the well-formedness of term interpretation **)
+(**   (i.e., interpret_term returns a well-formed matrix)   **)
+(*************************************************************)
 
 Lemma declsToMat_pauli_or_I : forall x d l p,
     In x (declsToMats d l p) -> x = PauliToMatrix p \/ x = I 2.
@@ -323,7 +329,8 @@ Proof.
     + discriminate.
 Qed. 
 
-Lemma interpret_term_WF :
+(* Main lemma showing interpretation well-formedness *)
+Theorem interpret_term_WF :
   forall (P : H_Program) (T : HSF_Term) (M : Square (dims P)),
     interpret_term P T = Some M -> WF_Matrix M.
 Proof.
@@ -336,9 +343,10 @@ Qed.
 
 
 
-(* 
-   Lemmas showing that Hamiltonian terms are Hermitian 
- *)
+(*********************************************************)
+(** Lemmas showing that Hamiltonian terms are Hermitian **)
+(**  (i.e., interpret_term returns a Hermitian matrix)  **)
+(*********************************************************)
 
 Lemma interpret_HPauli_helper_herm :
   forall (decls : list string) (label : string) (p : Pauli),
@@ -364,6 +372,8 @@ Proof.
   apply interpret_HPauli_helper_herm.
 Qed.
 
+(* Last remaining lemma about semantics; tricky because HPauli terms are the kronecker
+   product of lists of matrices *)
 Lemma HPauli_terms_commute {n : nat} :
   forall (decls : list string) (p : HPauli) (ps : list HPauli) (M1 M2 : Square n),
     interpret_HPauli decls p = Some M1 ->
@@ -421,7 +431,8 @@ Proof.
     + discriminate.
 Qed.
 
-Lemma term_herm {n : nat} : forall (P : H_Program) (T : HSF_Term) (S : Square n) H,
+(* Main lemma showing interpretation returns Hermitian matrices *)
+Theorem term_herm {n : nat} : forall (P : H_Program) (T : HSF_Term) (S : Square n) H,
     sem_term P T S -> interpret_term P T = Some H -> Herm H.
 Proof.
   intros P T S H Hsem Hit.
@@ -429,7 +440,8 @@ Proof.
   apply Hit.
 Qed.
 
-Corollary term_diagonalizable {n : nat} : forall (P : H_Program) (T : HSF_Term) (S : Square n) H,
+Corollary term_diagonalizable {n : nat} :
+  forall (P : H_Program) (T : HSF_Term) (S : Square n) H,
     sem_term P T S -> interpret_term P T = Some H -> Diagonalizable H.
 Proof.
   intros. apply herm_diagonalizable. eapply term_herm. apply H0. apply H1.
@@ -438,9 +450,9 @@ Qed.
 
 
 
-(*
-    Lemmas about commuting
- *)
+(********************************)
+(** Lemmas involving commuting **)
+(********************************)
 
 Lemma ham_commute_terms : forall (P : H_Program) (T1 T2 : HSF_Term),
     ham_commute P T1 T2 ->
@@ -458,6 +470,7 @@ Proof.
     rewrite E1 in H. auto.
 Qed.
 
+(* If Hamiltonians commute, then so do their semantic matrices *)
 Lemma ham_commute_term_semantics {n : nat} :
   forall (P : H_Program) (H1 H2 : HSF_Term) (S1 S2 : Square n),
   sem_term P H1 S1 -> sem_term P H2 S2 ->
@@ -524,9 +537,9 @@ Qed.
 
 
 
-(* 
-    Lemmas about semantics
- *)
+(*****************************************)
+(** Lemmas about term/program semantics **)
+(*****************************************)
 
 (* Term semantics are well-formed *)
 Lemma term_semantics_WF {n : nat} : forall (P : H_Program) (T : HSF_Term) (S : Square n),
@@ -543,15 +556,9 @@ Proof.
     + apply E'.
   - apply HS.
   - apply E.
-Qed.  
-    
-(* This lemma is not currently needed.
-(* Program semantics are well-formed *)
-Lemma prog_semantics_WF {n : nat} : forall (P : H_Program) (S : Square n),
-    sem_program P S -> WF_Matrix S.
-Proof. Admitted.
-*)
+Qed.
 
+(* The effects of a Hamitonian are deterministic; i.e. semantics are unique *)
 Lemma term_semantics_unique {n : nat} :
   forall (P : H_Program) (T : HSF_Term) (S1 S2 : Square n),
     sem_term P T S1 -> sem_term P T S2 -> S1 = S2.
@@ -568,6 +575,7 @@ Proof.
   - inversion HS2; subst. apply H0.
 Qed.
 
+(* The effects of a Hamitonian program are deterministic; i.e. semantics are unique *)
 Lemma prog_semantics_unique {n : nat} : forall (P : H_Program) (S1 S2 : Square n),
     sem_program P S1 -> sem_program P S2 -> S1 = S2.
 Proof.
@@ -604,6 +612,8 @@ Proof.
   - contradiction.
 Qed.
 
+(* The semantics of a 2-term program are the same as the product of the semantics of the
+   individual terms *)
 Lemma two_term_program_semantics :
   forall (P : H_Program) (H1 H2 : HSF_Term) (St1 St2 SP : Square (dims P)),
     sem_term P H1 St1 -> sem_term P H2 St2 ->
@@ -651,9 +661,9 @@ Qed.
 
 
 
-(*
-    Main Theorem
- *)
+(******************)
+(** Main Theorem **)
+(******************)
 
 
 (* Commuting Hamiltonians have the same semantics *)
@@ -674,24 +684,3 @@ Proof.
   - subst. apply (two_term_program_semantics P H1 H2 St1 St2 SP1); assumption.
   - subst. apply (two_term_program_semantics P H2 H1 St2 St1 SP2); assumption.
 Qed.
-
-
-
-(* This theorem statement is not correct,
-   but would we want something like this?
-
-Theorem sem_program_correct :
-  forall {n : nat} (P : H_Program) (S : Square n),
-    sem_program P S <->
-    matrix_exponential (interpret_term n (snd P)) S.
-    (* not sure how hard this would be to prove *)
-*)
-
-
-(*
-Theorem valid_programs_have_semantics (hprog : H_Program) :
-  exists (sem : Square (dims hprog)),
-    sem_program hprog sem.
-Proof.
-  Admitted.
-*)
