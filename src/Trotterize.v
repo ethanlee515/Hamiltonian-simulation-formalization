@@ -382,6 +382,8 @@ Fixpoint trotterizeInsts (decls : list string) (insts : list HSF_Term) (nSlices 
   | [] => Some []
   end.
 
+(* Maybe can just be an inductive type *)
+(* or even just (optional QasmProgram) is fine... *)
 Record trotterize_result := makeTrotRes
 {
   successful : bool;
@@ -397,15 +399,11 @@ Definition trotterize (prog : H_Program) (nSlices : nat) :=
   end.
 
 Theorem trotterize_correct :
-  forall (hprog : H_Program),
-    (program_valid hprog) ->
-    (* This is a crutch. *)
-    (* For now I don't want to deal with invalid programs or existence issues. *)
-    (exists sem : Square (dims hprog), sem_program hprog sem) ->
+  forall (hprog : H_Program) (correct_sem : Square (dims hprog)),
+    (sem_program hprog correct_sem) ->
       ((forall nSlices, (trotterize hprog nSlices).(successful) = false) (* Cannot Trotterize *) \/
-      (forall nSlices, (trotterize hprog nSlices).(successful) = true (* Can Trotterize *) /\
-        exists (correct_sem : Square (dims hprog)) (qasm_sem : nat -> (Square (dims hprog))),
-          sem_program hprog correct_sem /\
+      ((forall nSlices, (trotterize hprog nSlices).(successful) = true) (* Can Trotterize *) /\
+        exists (qasm_sem : nat -> (Square (dims hprog))),
           (forall nSlices, QasmSemantics (trotterize hprog nSlices).(output) (qasm_sem nSlices)) /\
           seq_conv (MatrixMetricSpace (dims hprog)) qasm_sem correct_sem
       )).
@@ -414,47 +412,62 @@ Proof.
   destruct hprog.
   generalize dependent Decls.
   induction Terms.
-  + intros.
+  - intros.
     right.
     intros.
     split.
-    - auto.
-    - exists (I (2 ^ (length Decls))).
-      exists (fun (_ : nat) => I (2 ^ (length Decls))).
+    + auto.
+    + exists (fun (_ : nat) => I (2 ^ (length Decls))).
       split.
-      * apply sem_program_nil.
-        ** auto.
-        ** reflexivity.
-      * split.
-        ** intros.
-           unfold QasmSemantics.
-           simpl.
-           exists 1.
-           apply Mscale_1_l.
-        ** intro eps.
-           intros.
-           exists 1%nat.
-           intros.
-           simpl.
-           Print dist_mats.
-           Set Printing All.
-           (* This is stupid *)
-           assert (distzero : @dist_mats (dims (makeHProg Decls []))
-                  (I (2 ^ (length Decls)))
-                  (I (2 ^ (length Decls))) = 0).
-           Unset Printing All.
-           apply dist_mats_refl.
-           reflexivity.
-           rewrite distzero.
-           auto.
-  + intros decls valid exist_sem.
-    destruct exist_sem as [sem is_sem].
-    inversion is_sem; subst.
+      * intros.
+        unfold QasmSemantics.
+        simpl.
+        exists 1.
+        apply Mscale_1_l.
+      * intro eps.
+        intros.
+        exists 1%nat.
+        intros.
+        simpl.
+        assert (distzero : @dist_mats (dims (makeHProg Decls []))
+                                      (I (2 ^ (length Decls)))
+                                      (I (2 ^ (length Decls))) = 0).
+        apply dist_mats_refl.
+        reflexivity.
+        (* TODO Prove that correct_sem = I and rewrite *)
+        (*
+        rewrite distzero.
+        auto.
+         *)
+        admit.
+  - intro decls.
+    intro hprog_sem.
+    intro hprog_sem_correct.
+    inversion hprog_sem_correct; subst.
     clear Hdims.
-    clear Hvalid.
     specialize (IHTerms decls).
-    (* Disgusting. *)
-    destruct a.
-    Admitted.
+    apply IHTerms in HP.
+    destruct HP.
+    + (* Cannot Trotterize *)
+      left.
+      intro nSlices.
+      specialize (H nSlices).
+      unfold trotterize.
+      simpl.
+      unfold trotterize in H.
+      simpl in H.
+      (* TODO *)
+      admit.
+    + destruct H as [CanTrotterizeTail QasmSemTail].
+      right.
+      split.
+      * (* Can trotterize *)
+        intro nSlices.
+        specialize (CanTrotterizeTail nSlices).
+        admit.
+      * (* Exists semantics *)
+        admit.
+        (* Disgusting. *)
+Admitted.
 
 
