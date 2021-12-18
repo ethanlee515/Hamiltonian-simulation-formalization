@@ -1,3 +1,9 @@
+(** -- MatrixExponential.v -- **)
+(**
+ * Defines matrix exponentiation and its preliminaries.
+ * Proves some basic properties as well.
+ *)
+
 Require Import Reals QWIRE.Matrix.
 Require Import Complex.
 Require Import Lra.
@@ -20,7 +26,6 @@ Definition seq_conv (X : Metric_Space) (seq : nat -> Base X) (lim : Base X) :=
  * but that's too much real analysis.
  * I think we'll be cheap today and go with infinity norm.
  * Where we won't even formalize what a "norm" is because I don't want to formalize a vector space.
- * Bite me.
  *
  * For infinity norm, we need to take max over a matrix...
  * Unfortunately, reals ordering is not decidable,
@@ -96,17 +101,27 @@ Definition MatrixMetricSpace (n : nat) := Build_Metric_Space (Square n)
     (dist_mats_refl n)
     (dist_mats_tri n).
 
-(* Print sum_f_R0. *)
+(* -- Matrix exponential -- *)
+(**
+ * Now we are almost ready to define matrix exponential.
+ * First we define partial and infinite sum of matrices.
+ *)
 Fixpoint mat_psum {dim : nat} (seq : nat -> Square dim) (N : nat) : Square dim :=
     match N with
     | O => seq O
     | S pred => Mplus (mat_psum seq pred) (seq N)
     end.
   
-(* Print infinite_sum. *)
+(* The infinite sum is defined as a relation, since a sum may not converge. *)
 Definition mat_infinite_sum {dim : nat} (seq : nat -> Square dim) (result : Square dim) :=
     seq_conv (MatrixMetricSpace dim) (mat_psum seq) result.
 
+(*
+ * Our matrix exponential was defined as a relation.
+ * We wanted to brush existence and uniqueness issues under the rug.
+ * I regret it more with every passing day.
+ * Is it what they call technical debt?
+ *)
 Definition matrix_exponential {n : nat} (M Mexp : Square n) :=
     mat_infinite_sum (fun k => scale (/ (INR (fact k))) (Mmult_n k M) ) Mexp.
 
@@ -126,14 +141,18 @@ Lemma mexp_cscale :
 Proof.
 Admitted.
 
-(* e^((A + B)) == 1/dt e^(A dt) e^(B dt) *)
+(* -- Approximation of matrix exponentials -- *)
+(* e^((A+B)dt) ~= e^(A dt) e^(B dt) *)
+(* but with more matrices than 2 *)
 
+(* Sum of finitely many matrices *)
 Fixpoint mat_finite_sum {dim : nat} (Ms : list (Square dim)) : Square dim :=
   match Ms with
   | head :: tail => Mplus head (mat_finite_sum tail)
   | [] => Zero
   end.
 
+(* Produce of finitely many matrices *)
 Fixpoint mat_finite_prod {dim : nat} (Ms : list (Square dim)) : Square dim :=
   match Ms with
   | head :: tail => Mmult head (mat_finite_prod tail)
@@ -224,9 +243,11 @@ Proof. Admitted.
 
 (* More matrix exponential facts... *)
 
+(* Padding an operator with no-op on other locations *)
 Definition padIs (num_qubits : nat) (g : Square 2) (loc : nat) : Square (2 ^ num_qubits) :=
   kron (kron (I (2 ^ loc)) g) (I (2 ^ (num_qubits - loc - 1))).
 
+(* Output of padIs is a well-formed matrix *)
 Lemma padIs_WF :
   forall (num_qubits : nat) (g : Square 2) (loc : nat),
     (WF_Matrix g) ->
@@ -248,13 +269,15 @@ Proof.
   apply WF_I.
 Admitted.
 
+(* PadIs and matrix exponentials commute with each others *)
 Lemma mexp_padIs :
   forall num_qubits A expA loc,
     matrix_exponential A expA ->
     matrix_exponential (padIs num_qubits A loc) (padIs num_qubits expA loc).
 Proof. Admitted.
 
-(* Not sure where this next lemma belongs *)
+(* More facts on padIs: it commutes with scalar multiplication. *)
+(* Not sure where this lemma belongs *)
 Lemma padIs_scale :
   forall num_qubits A sc loc,
     padIs num_qubits (scale sc A) loc = scale sc (padIs num_qubits A loc).

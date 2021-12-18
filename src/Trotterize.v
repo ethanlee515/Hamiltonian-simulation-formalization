@@ -1,3 +1,9 @@
+(** -- Trotterize.v -- **)
+(**
+ * Compiler that takes H_Program to QasmProgram.
+ * The main step uses the "Trotterization" algorithm.
+ *)
+
 Require Import String.
 Require Import Reals.
 Require Import List.
@@ -7,6 +13,7 @@ Require Import Semantics.
 Require Import PauliRotations.
 Require Import MatrixExponential.
 
+(* AST Transform of an one-local term *)
 Definition makeQT1 (p : Pauli) (theta : HScalar) (loc : nat) :=
   match p with
   | Pauli_I => []
@@ -15,6 +22,7 @@ Definition makeQT1 (p : Pauli) (theta : HScalar) (loc : nat) :=
   | Pauli_Z => [QasmTerm1 (Rz theta) loc]
   end.
 
+(* Correctness of above *)
 Lemma makeQT1_correct :
   forall (num_qubits : nat) (p : Pauli) (theta : HScalar) (loc : nat),
     (loc < num_qubits)%nat ->
@@ -110,13 +118,16 @@ Proof.
     assumption.
 Admitted.
 
+(* More constants *)
 Definition HScPI := HScReal PI "pi".
 Definition HScPI2 := HScReal (PI / 2) "(pi/2)".
 Definition HScZero := HScReal 0 "0".
 
+(* Hard-coded gates *)
 Definition QasmTYZ := QasmU HScPI2 HScZero HScPI2.
 Definition QasmTYZ_dag := QasmU HScPI2 HScPI2 HScPI.
 
+(* AST transform of a 2-local term *)
 Definition makeQT2 (p1 p2 : Pauli)
            (theta : HScalar)
            (loc1 loc2 : nat) : list QasmTerm :=
@@ -148,15 +159,22 @@ Definition makeQT2 (p1 p2 : Pauli)
   | (Pauli_Z, Pauli_Z) => [QasmTerm2 (Rzz theta) loc1 loc2]
   end.
 
+(* TODO Correctness of above *)
 (*
 Lemma makeQT2_correct :
   forall theta loc1 loc2,
     loc1 =? loc2 = false ->
     matrix_exponential (makeQT2 p1 p2 theta loc1 loc2)
-                       *)
-                     
+*)
+
+(* Conversion from natural numbers to HScalar type *)
+(* TODO should unify naming style/convention *)
 Definition natToHSc (n : nat) := HScReal (INR n) (string_of_nat n).
 
+(**
+ * Takes a TIH_Term and a total duration t to constructs quantum circuit
+ * that runs the Hamiltonian evolution for a short time-slice of duration (t / nSlices).
+ *)
 Definition sliceTerm (decls : list string)
            (duration : HScalar)
            (term : TIH_Term)
@@ -177,6 +195,7 @@ Definition sliceTerm (decls : list string)
   | _ => None (* Too nonlocal *)
   end.
 
+(* Correctness of above *)
 Lemma sliceTermCorrect :
   forall decls duration term nSlices,
     sliceTerm decls duration term nSlices = None \/
@@ -344,6 +363,7 @@ Proof.
         reflexivity.
 Admitted.
 
+(* Given a list of TIH_terms, run each of them for a short time-slice. *)
 Fixpoint sliceTerms (decls : list string)
          (duration : HScalar)
          (terms : list TIH_Term)
@@ -366,12 +386,18 @@ Fixpoint accSlices (slice : list QasmTerm) (nSlices : nat) :=
   | S pr => slice ++ (accSlices slice pr)
   end.
 
+(* The Trotterization algorithm for simulating Hamiltonian evolutions *)
 Definition trotterizeInst (decls : list string) (inst : HSF_Term) (nSlices : nat) :=
   match sliceInst decls inst nSlices with
   | Some slice => Some (accSlices slice nSlices)
   | None => None
   end.
 
+(* TODO State and prove correctness of above *)
+(* Base on the approximation formula of matrix exponentials *)
+(* Print matexp_approx. *)
+
+(* Compilation of multiple instructions *)
 Fixpoint trotterizeInsts (decls : list string) (insts : list HSF_Term) (nSlices : nat) :=
   match insts with
   | head :: tail =>
@@ -382,22 +408,29 @@ Fixpoint trotterizeInsts (decls : list string) (insts : list HSF_Term) (nSlices 
   | [] => Some []
   end.
 
-(* Maybe can just be an inductive type *)
-(* or even just (optional QasmProgram) is fine... *)
+(**
+ * Compilation results.
+ * Maybe should just be an inductive type as follows:
+ * `successful (output : QasmProgram) | failure`
+ * or even just (optional QasmProgram) is fine... *)
 Record trotterize_result := makeTrotRes
 {
   successful : bool;
   output : QasmProgram;
 }.
 
+(* unnecessary *)
 Definition idProg := makeQasmProg 0 [].
 
+(* Overall compilation of H_Program *)
 Definition trotterize (prog : H_Program) (nSlices : nat) :=
   match trotterizeInsts prog.(Decls) prog.(Terms) nSlices with
   | Some qasm_insts => makeTrotRes true (makeQasmProg (count_sites prog) qasm_insts)
   | None => makeTrotRes false idProg
   end.
 
+(* Correctness of compilation *)
+(* Part of the proof should probably be moved back as part of correctness of trotterizeInst *)
 Theorem trotterize_correct :
   forall (hprog : H_Program) (correct_sem : Square (dims hprog)),
     (sem_program hprog correct_sem) ->

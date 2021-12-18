@@ -1,3 +1,6 @@
+(** -- Qasm.v -- **)
+(* Our lightweight re-formalization of a subset of OpenQASM *)
+
 Require Import Reals.
 Require Import String.
 Require Import QWIRE.Matrix.
@@ -9,6 +12,7 @@ Require Import Semantics.
 
 (* -- QASM AST -- *)
 
+(* 1-qubit gates *)
 Inductive QasmGate1 :=
 | Rx (theta : HScalar)
 | Ry (theta : HScalar)
@@ -16,22 +20,34 @@ Inductive QasmGate1 :=
 | QasmH
 | QasmU (theta phi lambda : HScalar).
 
+(* 2-qubit gates *)
 Inductive QasmGate2 :=
   | Rxx (theta : HScalar)
   | Rzz (theta : HScalar).
 
-
+(**
+ * An OpenQASM instruction.
+ * Consists of a gate and the location to apply it.
+ *)
 Inductive QasmTerm :=
 | QasmTerm1 (gate : QasmGate1) (loc : nat)
 | QasmTerm2 (gate : QasmGate2) (loc1 loc2 : nat).
 
-
+(**
+ * An OpenQASM program.
+ * Simply a list of OpenQASM instructions as above.
+ *
+ * An OpenQASM program is in fact a lot more expressive than this.
+ * Here we only formalize the subset that our compiler uses.
+ *)
 Record QasmProgram := makeQasmProg {
     num_qubits : nat;
     circuit : list QasmTerm;
 }.
 
 (* -- QASM Semantics -- *)
+
+(* Semantics of an OpenQASM instruction *)
 Definition QasmInstSemantics (num_qubits : nat)
            (inst : QasmTerm) (sem : Square (2 ^ num_qubits)) :=
   match inst with
@@ -48,6 +64,14 @@ Definition QasmInstSemantics (num_qubits : nat)
       exists global_phase,
       padIs num_qubits u loc = scale global_phase sem
   | QasmTerm2 gate loc1 loc2 =>
+      (**
+       * This could've been a lot more concise
+       * Right now however we don't have permutation of qubits,
+       * so we have to piece together the two-qubit gate in a weird way.
+       *
+       * A difficulty of implementing qubit permutation comes from its interation
+       * with the tensor product.
+       *)
       let g :=
         match gate with
         | Rxx theta => XGate
@@ -67,6 +91,10 @@ Definition QasmInstSemantics (num_qubits : nat)
       matrix_exponential tp1p2 (scale global_phase sem)
   end.
 
+(**
+ * Semantics of a sequence of OpenQASM instructions.
+ * It is simply a matrix product of the semantics of each instruction.
+ *)
 Fixpoint QasmInstsSemantics (num_qubits : nat)
          (insts : list QasmTerm) (sem : Square (2 ^ num_qubits)) :=
   match insts with
@@ -77,12 +105,15 @@ Fixpoint QasmInstsSemantics (num_qubits : nat)
   | [] => exists global_phase, scale global_phase sem = I (2 ^ num_qubits)
   end.
 
+(* Finally we wrap the sequence of instructions into a QasmProgram instance. *)
 Definition QasmSemantics (prog : QasmProgram) (sem : Square (2 ^ (prog.(num_qubits)))) :=
   QasmInstsSemantics prog.(num_qubits) prog.(circuit) sem.
 
 (* -- QASM Printer -- *)
 
 (* TODO test me against actual Qasm compiler *)
+(* The generated QASM probably will have syntax errors... *)
+(* Nothing is being proven here; not sure what is there to prove. *)
 
 Definition string_of_nat (n : nat) := NilZero.string_of_int (Nat.to_int n).
 

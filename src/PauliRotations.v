@@ -1,8 +1,14 @@
+(** -- PauliRotations.v -- **)
+(**
+ * Defines some basic quantum operators as well as their matrix exponentials.
+ *)
+
 Require Import Complex.
 Require Import QWIRE.Matrix.
 Require Import MatrixExponential.
 Require Import Diagonalization.
 
+(* The Pauli group as defined in quantum information *)
 Inductive Pauli :=
 | Pauli_I
 | Pauli_X
@@ -30,6 +36,7 @@ Definition ZGate : Square 2 := fun (i j : nat) =>
     | _ => RtoC 0
     end.
 
+(* The 1-qubit Hadamate gate *)
 Definition HGate : Square 2 := fun (i j : nat) =>
   match (i, j) with
   | (0, 0) => / sqrt 2
@@ -39,11 +46,13 @@ Definition HGate : Square 2 := fun (i j : nat) =>
   | _ => 0
   end.
 
+(* Diagonalization of the Pauli X matrix *)
 Lemma XGateDiagonalization :
   Diagonalization XGate HGate ZGate HGate.
 Proof.
   Admitted.
 
+(* Maps the Pauli gates to their respective semantics *)
 Definition PauliToMatrix (p : Pauli) : Square 2 :=
     match p with
     | Pauli_I => I 2
@@ -52,6 +61,7 @@ Definition PauliToMatrix (p : Pauli) : Square 2 :=
     | Pauli_Z => ZGate
     end.
 
+(* -- Matrix exponentials of scalar multiples of Pauli gates -- *)
 (* Implemented by Qiskit *)
 (* Maybe we should write the matrices out anyways? *)
 Parameter RXGate : R -> Square 2.
@@ -72,7 +82,11 @@ Axiom RZGate_correct :
     forall (theta : R),
       matrix_exponential (scale (-Ci * theta / 2) ZGate) (RZGate theta).
 
-(* Have to do this since global phase isn't eliminated *)
+(**
+ * Physically speaking, RI = I.
+ * Our definitions is however a bit shaky:
+ * we have "global phase" issues so we have to write the following workaround.
+ *)
 Definition RIGate (theta : R) := scale (Cexp (-theta / 2)) (I 2).
 
 Lemma RIGate_correct :
@@ -81,6 +95,7 @@ Lemma RIGate_correct :
 Proof.
 Admitted.
 
+(* Takes a single-qubit Pauli operator to its exponential *)
 Definition PauliToExpM (p : Pauli) (theta : R) :=
   match p with
   | Pauli_I => RIGate theta
@@ -89,6 +104,7 @@ Definition PauliToExpM (p : Pauli) (theta : R) :=
   | Pauli_Z => RZGate theta
   end.
 
+(* Correctness of the above *)
 Lemma PauliToExpM_correct :
   forall (p : Pauli) (theta : R),
     matrix_exponential (scale (-Ci * theta / 2) (PauliToMatrix p)) (PauliToExpM p theta).
@@ -101,7 +117,8 @@ Proof.
   apply RZGate_correct.
 Qed.
 
-Lemma PauliToExpM_correct2t :
+(* The above lemma re-parametrized *)
+Corollary PauliToExpM_correct2t :
   forall (p : Pauli) (theta2 : R),
     matrix_exponential (scale (-Ci * theta2) (PauliToMatrix p)) (PauliToExpM p (2 * theta2)).
 Proof.
@@ -124,6 +141,8 @@ Definition RYZGate (t : R) : Square 4 :=
 
 (* Three qubits rotation is nice to have but not top priority *)
 
+(* -- Other useful quantum gates -- *)
+
 (* Universal 1-qubit gate; provided by Qasm *)
 Definition UGate (theta phi lambda : R) (i j : nat) : C :=
   match (i, j) with
@@ -134,6 +153,7 @@ Definition UGate (theta phi lambda : R) (i j : nat) : C :=
   | _ => 0
   end.
 
+(* Diagonalizing transform of the Pauli Y gate *)
 Definition TYZ_Gate_dag (i j : nat) : C :=
   match (i, j) with
   | (0, 0) => / sqrt 2
@@ -148,6 +168,7 @@ Lemma TYZ_Gate_dag_impl :
 Proof.
 Admitted.
 
+(* The other half of the diagonalizing transform of Pauli Y gate *)
 Definition TYZ_Gate (i j : nat) : C :=
   match (i, j) with
   | (0, 0) => / sqrt 2
@@ -167,6 +188,9 @@ Lemma TYZ_correct :
 Proof.
 Admitted.
 
+(* -- Properties of Pauli operators -- *)
+
+(* Pauli matrices are well-formed *)
 Lemma PauliToMatrix_WF : forall (p : Pauli), WF_Matrix (PauliToMatrix p).
 Proof.
   intros p. destruct p; simpl.
@@ -197,6 +221,7 @@ Proof.
       * destruct y; auto. destruct y; auto. lia.
 Qed.
 
+(* Pauli matrices are Hermitian *)
 Lemma PauliToMatrix_herm : forall (p : Pauli), Herm (PauliToMatrix p).
 Proof.
   intros. destruct p; simpl.
