@@ -69,7 +69,6 @@ Admitted.
 Definition inftyNorm_inst {n : nat} (m : Square n) :=
     completeness (inftyNorm_lb m) (inftyNorm_ub m) (ex_inftyNorm_lb m).
 
-(* Why is this so disgusting *)
 Definition inftyNorm {n : nat} (m : Square n) : R := proj1_sig (inftyNorm_inst m).
 
 Definition dist_mats {n : nat} (m1 m2 : Square n) : R := inftyNorm (Mplus m1 (scale (-1) m2)).
@@ -152,7 +151,7 @@ Fixpoint mat_finite_sum {dim : nat} (Ms : list (Square dim)) : Square dim :=
   | [] => Zero
   end.
 
-(* Produce of finitely many matrices *)
+(* Product of finitely many matrices *)
 Fixpoint mat_finite_prod {dim : nat} (Ms : list (Square dim)) : Square dim :=
   match Ms with
   | head :: tail => Mmult head (mat_finite_prod tail)
