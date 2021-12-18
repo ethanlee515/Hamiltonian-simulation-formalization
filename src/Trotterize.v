@@ -500,7 +500,6 @@ Proof.
         admit.
       * (* Exists semantics *)
         admit.
-        (* Disgusting. *)
 Admitted.
 
 
