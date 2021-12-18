@@ -172,7 +172,7 @@ Definition matexp_approx {dim : nat} (Ms : list (Square dim)) :
       exp_sumMs.
 Proof.
   intros.
-  (* Disgusting. *)
+  (* TODO *)
 Admitted.
 
 (*
