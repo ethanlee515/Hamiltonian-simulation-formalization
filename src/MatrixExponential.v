@@ -33,43 +33,19 @@ Definition seq_conv (X : Metric_Space) (seq : nat -> Base X) (lim : Base X) :=
  * The only way I can think of to get a decidable max is by calling completeness...
  *)
 
-Definition inftyNorm_lb {n : nat} (m : Square n) (lb : R) :=
-    exists i j, lb < Cmod (m i j).  
-
-Lemma ex_inftyNorm_lb {n : nat} (m : Square n) :
-    exists lb, inftyNorm_lb m lb.
-Proof.
-  exists (-1). unfold inftyNorm_lb. unfold Cmod. exists 0%nat, 0%nat.
-  assert (H :0 <=  √ (fst (m 0%nat 0%nat) ^ 2 + snd (m 0%nat 0%nat) ^ 2)).
-  - apply sqrt_pos.
-  - lra.
-Qed.
-
-Definition Cmod_elem (f : nat -> nat -> C) (i j : nat) := Cmod (f i j).
-
-Fixpoint matrix_sum {n : nat} (row : nat) (M : Square n) : R :=
-  match row with
-  | 0 => (Rsum n (Cmod_elem M 0%nat))
-  | S row' => (Rsum n (Cmod_elem M row)) + (matrix_sum row' M)
+Fixpoint inftyNorm_aux {n : nat} (mat : Square n) (i : nat) (currentMax : R) : R :=
+  let r := (i / n)%nat in
+  let c := (i mod n)%nat in
+  let elem := Cmod (mat r c) in
+  (* Apparently this works... *)
+  let newMax := if Rlt_dec elem currentMax then currentMax else elem in
+  match i with
+  | O => newMax
+  | S i' => inftyNorm_aux mat i' newMax
   end.
 
-Lemma inftyNorm_ub {n : nat} (M : Square n) :
-    bound (inftyNorm_lb M).
-Proof.
-  unfold bound.
-  exists (matrix_sum (n-1) M).
-  assert (Hub : forall i j, Cmod (M i j) <= matrix_sum (n-1) M). {
-    intros i j. admit. (* I don't think this is provable without well-formedness :(   *)
-  }
-  unfold is_upper_bound. intros x.
-  unfold inftyNorm_lb. intros [i [j H]].
-  remember (Hub i j). lra.
-Admitted.
-
-Definition inftyNorm_inst {n : nat} (m : Square n) :=
-    completeness (inftyNorm_lb m) (inftyNorm_ub m) (ex_inftyNorm_lb m).
-
-Definition inftyNorm {n : nat} (m : Square n) : R := proj1_sig (inftyNorm_inst m).
+Definition inftyNorm {n : nat} (m : Square n) :=
+  inftyNorm_aux m (n * n - 1) 0.
 
 Definition dist_mats {n : nat} (m1 m2 : Square n) : R := inftyNorm (Mplus m1 (scale (-1) m2)).
 
