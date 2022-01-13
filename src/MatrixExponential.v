@@ -26,11 +26,6 @@ Definition seq_conv (X : Metric_Space) (seq : nat -> Base X) (lim : Base X) :=
  * but that's too much real analysis.
  * I think we'll be cheap today and go with infinity norm.
  * Where we won't even formalize what a "norm" is because I don't want to formalize a vector space.
- *
- * For infinity norm, we need to take max over a matrix...
- * Unfortunately, reals ordering is not decidable,
- * which is a problem because we need distance to be decidable to call Build_Metric_Space.
- * The only way I can think of to get a decidable max is by calling completeness...
  *)
 
 Fixpoint inftyNorm_aux {n : nat} (mat : Square n) (i : nat) (currentMax : R) : R :=
@@ -44,15 +39,56 @@ Fixpoint inftyNorm_aux {n : nat} (mat : Square n) (i : nat) (currentMax : R) : R
   | S i' => inftyNorm_aux mat i' newMax
   end.
 
+Lemma if_both_nonneg :
+  forall a b c d, a >= 0 -> b >= 0 -> (if Rlt_dec c d then a else b) >= 0.
+Proof.
+  intros.
+  case (Rlt_dec c d); intro; assumption.
+Qed.
+
+Lemma inftyNorm_aux_nonneg :
+  forall n mat i m, m >= 0 -> @inftyNorm_aux n mat i m >= 0.
+Proof.
+  intros.
+  generalize dependent m.
+  induction i.
+  + intros.
+    unfold inftyNorm_aux.
+    apply if_both_nonneg.
+    - assumption.
+    - apply Rle_ge.
+      apply Cmod_ge_0.
+  + simpl.
+    intros.
+    apply IHi.
+    apply if_both_nonneg; try assumption.
+    apply Rle_ge.
+    apply Cmod_ge_0.
+Qed.
+    
 Definition inftyNorm {n : nat} (m : Square n) :=
   inftyNorm_aux m (n * n - 1) 0.
+
+Lemma inftyNorm_nonneg :
+  forall n mat, @inftyNorm n mat >= 0.
+Proof.
+  unfold inftyNorm.
+  intros.
+  apply inftyNorm_aux_nonneg.
+  apply Req_ge_sym.
+  reflexivity.
+Qed.
 
 Definition dist_mats {n : nat} (m1 m2 : Square n) : R := inftyNorm (Mplus m1 (scale (-1) m2)).
 
 Lemma dist_mats_pos :
     forall n (m1 m2 : Square n), dist_mats m1 m2 >= 0.
 Proof.
-    Admitted.
+  intros.
+  unfold dist_mats.
+  unfold inftyNorm.
+  apply inftyNorm_nonneg.
+Qed.
 
 Lemma dist_mats_sym :
     forall n (m1 m2 : Square n), dist_mats m1 m2 = dist_mats m2 m1.
