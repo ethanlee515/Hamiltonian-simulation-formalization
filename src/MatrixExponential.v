@@ -7,6 +7,7 @@
 Require Import Reals QWIRE.Matrix.
 Require Import Complex.
 Require Import Lra.
+Require Import Coq.Logic.ProofIrrelevance.
 
 (* -- Sequence convergence in metric space -- *)
 
@@ -266,33 +267,6 @@ Proof.
     rewrite Cmod_0.
     apply inftyNorm_aux_nonneg.
       apply Rge_refl.
-Qed.
-
-Require Import Coq.Logic.ProofIrrelevance.
-
-Parameter A : Type.
-Parameter B : A -> Type.
-
-Structure Foo := mkFoo { a : A; b : B a }.
-
-Definition tran {u v : Foo} (p : a u = a v) : B (a u) -> B (a v).
-Proof.
-induction p.
-auto.
-Defined.
-
-Check tran.
-
-Lemma equal_foo (u v : Foo) (p : a u = a v) : tran p (b u) = b v -> u = v.
-Proof.
-intro H.
-destruct u as [x y].
-destruct v as [s t].
-simpl in * |- *.
-destruct p.
-simpl in H.
-rewrite H.
-reflexivity.
 Qed.
 
 Lemma inftyNorm_zero :
