@@ -20,12 +20,21 @@ Definition seq_conv (X : Metric_Space) (seq : nat -> Base X) (lim : Base X) :=
     exists N : nat, 
         (forall n : nat, (n >= N)%nat -> X.(dist) (seq n) lim < eps).
 
+(* -- Well-formed matrices type -- *)
+(* The properties we're interested in require well-formedness *)
+
+Record WF_Square {n : nat} := Build_WF_Square {
+  m_mat : Square n;
+  m_wf : WF_Matrix m_mat
+}.
+
+Definition zero_wf {n : nat} := @Build_WF_Square n Zero (WF_Zero n n).
+
 (* -- Showing that matrices form a metric space -- *)
 
 (* We could define operator norm and show that the norm induces a metric...
  * but that's too much real analysis.
  * I think we'll be cheap today and go with infinity norm.
- * Where we won't even formalize what a "norm" is because I don't want to formalize a vector space.
  *)
 
 Fixpoint inftyNorm_aux {n : nat} (mat : Square n) (i : nat) (currentMax : R) : R :=
@@ -65,7 +74,104 @@ Proof.
     apply Rle_ge.
     apply Cmod_ge_0.
 Qed.
-    
+
+Lemma inftyNorm_aux_runningMax_monotonic:
+  forall n mat i m1 m2, m1 >= m2 -> @inftyNorm_aux n mat i m1 >= @inftyNorm_aux n mat i m2.
+Proof.
+  intros.
+  generalize dependent m2.
+  generalize dependent m1.
+  induction i.
+  + simpl.
+    intros.
+    case (Rlt_dec (Cmod (mat (0 / n)%nat (0 mod n))) m1).
+    * intros.
+      case (Rlt_dec (Cmod (mat (0 / n)%nat (0 mod n))) m2).
+      - intro. assumption.
+      - lra.
+    * intros.
+      apply Rnot_lt_ge in n0.
+      assert (Cmod (mat (0 / n)%nat (0 mod n)) >= m2).
+        apply Rge_trans with (r2 := m1); assumption.
+      case_eq (Rlt_dec (Cmod (mat (0 / n)%nat (0 mod n))) m2).
+      - intros.
+        assumption.
+      - intros.
+        apply Rge_refl.
+  + simpl.
+    intros.
+    case (Rlt_dec (Cmod (mat (S i / n)%nat (S i mod n)))).
+    * intros.
+      case (Rlt_dec (Cmod (mat (S i / n)%nat (S i mod n))) m2).
+      - intros.
+        apply IHi. assumption.
+      - intros.
+        apply IHi.
+        apply Rgt_ge.
+        apply Rlt_gt.
+        assumption.
+    * intros.
+      case (Rlt_dec (Cmod (mat (S i / n)%nat (S i mod n))) m2).
+      - intros. lra.
+      - lra.
+Qed.
+
+Lemma inftyNorm_aux_running_max_correct:
+  forall n mat i m y, m >= y -> @inftyNorm_aux n mat i m >= y.
+Proof.
+  intros.
+  induction i.
+  + simpl.
+    case (Rlt_dec (Cmod (mat (0 / n)%nat (0 mod n))) m).
+    - intro. assumption.
+    - intro.
+      apply Rnot_lt_ge in n0.
+      apply Rge_trans with (r2 := m); assumption.
+  + simpl.
+    apply Rge_trans with (r2 := inftyNorm_aux mat i m).
+    - apply inftyNorm_aux_runningMax_monotonic.
+      case (Rlt_dec (Cmod (mat (S i / n)%nat (S i mod n))) m); lra.
+    - assumption.
+Qed.
+
+Lemma inftyNorm_aux_correct:
+  forall n mat i I,
+    (i <= I)%nat -> @inftyNorm_aux n mat I 0 >= Cmod (mat (i / n)%nat (i mod n)%nat).
+Proof.
+  intros.
+  generalize dependent i.
+  induction I.
+  + intros.
+    simpl.
+    assert (i = 0%nat).
+      lia.
+    subst.
+    case_eq (Rlt_dec (Cmod (mat (0 / n)%nat (0 mod n))) 0).
+    - intros. lra.
+    - intros. lra.
+  + intros.
+    simpl.
+    case_eq (Rlt_dec (Cmod (mat (S I / n)%nat (S I mod n))) 0).
+    - intros.
+      assert (0 <= Cmod (mat (S I / n)%nat (S I mod n))).
+        Print Cmod_ge_0.
+        apply Cmod_ge_0.
+      lra.
+    - intros.
+      case_eq (i =? S I).
+      * rewrite Nat.eqb_eq.
+        intro. subst.
+        apply inftyNorm_aux_running_max_correct.
+        apply Rge_refl.
+      * intro.
+        apply beq_nat_false in H1.
+        apply Rge_trans with (r2 := inftyNorm_aux mat I 0).
+        ** apply inftyNorm_aux_runningMax_monotonic.
+           apply Rle_ge.
+           apply Cmod_ge_0.
+        ** apply IHI. lia.
+Qed.
+
 Definition inftyNorm {n : nat} (m : Square n) :=
   inftyNorm_aux m (n * n - 1) 0.
 
@@ -77,6 +183,155 @@ Proof.
   apply inftyNorm_aux_nonneg.
   apply Req_ge_sym.
   reflexivity.
+Qed.
+
+Definition inftyNorm_wf {n : nat} (m : @WF_Square n) :=
+  inftyNorm m.(m_mat).
+
+Lemma inftyNormwf_nonneg :
+  forall (n : nat) (m : @WF_Square n), inftyNorm_wf m >= 0.
+Proof.
+  intros.
+  unfold inftyNorm_wf.
+  apply inftyNorm_nonneg.
+Qed.
+
+Lemma inftyNormwf_bound :
+  forall (n : nat) (m : @WF_Square n) r c, (n > 0)%nat -> inftyNorm_wf m >= Cmod (m.(m_mat) r c).
+Proof.
+  intros.
+  destruct m as [val wf].
+  unfold inftyNorm_wf.
+  simpl.
+  unfold inftyNorm.
+  case_eq (r <? n).
+  + case_eq (c <? n).
+    - intros c_bound r_bound.
+      apply Nat.ltb_lt in c_bound.
+      apply Nat.ltb_lt in r_bound.
+      Check inftyNorm_aux_correct.
+      remember (r * n + c)%nat as index.
+      assert (r = (index / n)%nat) as r_val.
+        rewrite Heqindex.
+        rewrite Nat.div_add_l.
+        rewrite Nat.div_small.
+        rewrite Nat.add_0_r.
+        reflexivity.
+        assumption.
+        lia.
+      rewrite r_val.
+      assert (c = (index mod n)) as c_val.
+        rewrite Heqindex.
+        rewrite Nat.add_comm.
+        rewrite Nat.mod_add.
+        rewrite Nat.mod_small.
+        reflexivity.
+        assumption.
+        lia.
+      rewrite c_val.
+      apply inftyNorm_aux_correct.
+        rewrite Heqindex.
+        Print plus_le_compat.
+        assert (n * n - 1 = (n * (n - 1)) + (n - 1))%nat as split_index.
+          rewrite Nat.add_sub_assoc.
+          rewrite mult_n_Sm.
+          assert (S (n - 1) = n) as minus_then_plus_1.
+            lia.
+          rewrite minus_then_plus_1.
+          reflexivity.
+          lia.
+        rewrite split_index.
+        apply plus_le_compat.
+        rewrite mult_comm.
+        apply mult_le_compat_l.
+        lia.
+        lia.
+    - intros.
+      unfold WF_Matrix in wf.
+      apply Nat.ltb_nlt in H0.
+      assert (r >= n \/ c >= n)%nat as out_of_bound.
+        lia.
+      apply wf in out_of_bound.
+      rewrite out_of_bound.
+      rewrite Cmod_0.
+      apply inftyNorm_aux_nonneg.
+        apply Rge_refl.
+  + intros.
+    unfold WF_Matrix in wf.
+    apply Nat.ltb_nlt in H0.
+    assert (r >= n \/ c >= n)%nat as out_of_bound.
+      lia.
+    apply wf in out_of_bound.
+    rewrite out_of_bound.
+    rewrite Cmod_0.
+    apply inftyNorm_aux_nonneg.
+      apply Rge_refl.
+Qed.
+
+Require Import Coq.Logic.ProofIrrelevance.
+
+Parameter A : Type.
+Parameter B : A -> Type.
+
+Structure Foo := mkFoo { a : A; b : B a }.
+
+Definition tran {u v : Foo} (p : a u = a v) : B (a u) -> B (a v).
+Proof.
+induction p.
+auto.
+Defined.
+
+Check tran.
+
+Lemma equal_foo (u v : Foo) (p : a u = a v) : tran p (b u) = b v -> u = v.
+Proof.
+intro H.
+destruct u as [x y].
+destruct v as [s t].
+simpl in * |- *.
+destruct p.
+simpl in H.
+rewrite H.
+reflexivity.
+Qed.
+
+Lemma inftyNorm_zero :
+  forall (n : nat) (m : @WF_Square n), (n > 0)%nat -> @inftyNorm_wf n m = 0 -> m = zero_wf.
+Proof.
+  intros.
+  unfold zero_wf.
+  assert (forall r c, inftyNorm_wf m >= Cmod (m_mat m r c)) as inftyNorm_bound_inst.
+    intros.
+    apply inftyNormwf_bound.
+    assumption.
+  destruct m as [val wf].
+  simpl in inftyNorm_bound_inst.
+  unfold inftyNorm_wf in inftyNorm_bound_inst.
+  simpl in inftyNorm_bound_inst.
+  unfold inftyNorm_wf in H0.
+  simpl in H0.
+  rewrite H0 in inftyNorm_bound_inst.
+  assert (forall r c, Cmod (val r c) = 0) as cmod_is_0.
+    intros.
+    apply Rge_antisym.
+    apply Rle_ge.
+    apply Cmod_ge_0.
+    apply inftyNorm_bound_inst.
+  assert (forall r c, val r c = 0) as entries_zero.
+    intros.
+    apply Cmod_eq_0.
+    apply cmod_is_0.
+  assert (Zero = val) as val_zero.
+    apply functional_extensionality.
+    intro r.
+    apply functional_extensionality.
+    intro c.
+    unfold Zero.
+    symmetry.
+    apply entries_zero.
+  destruct val_zero.
+  f_equal.
+  apply proof_irrelevance.
 Qed.
 
 Definition dist_mats {n : nat} (m1 m2 : Square n) : R := inftyNorm (Mplus m1 (scale (-1) m2)).
