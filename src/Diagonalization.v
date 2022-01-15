@@ -13,9 +13,13 @@ Require Import QWIRE.Matrix.
 Require Import MatrixExponential.
 Require Import Init.Tauto.
 
+Open Scope wf_scope.
+
 (**********************************)
 (** Linear Algebraic Definitions **)
 (**********************************)
+
+(** 
 
 (* Element-wise definition of Hermitian *)
 Definition Herm {n : nat} (A : Square n) : Prop :=
@@ -25,27 +29,185 @@ Definition Herm {n : nat} (A : Square n) : Prop :=
 Definition Herm_alternate {n : nat} (A : Square n) :=
   A = A †.
 
+**)
+
 (* D is a diagonal matrix if the following conditions are met *)
-Definition Diagonal {n : nat} (D : Square n) :=
-  forall i j, i <> j ->  D i j = 0.
+Definition Diagonal {n : nat} (D : @WF_Square n) :=
+  forall i j, i <> j ->  (`D) i j = 0.
 
 (* Tinv × D × T is a diagonalization of M if the following conditions are met *)
-Definition Diagonalization {n : nat} (Tinv D T M : Square n) : Prop :=
-  Diagonal D /\ Minv T Tinv /\ M = Tinv × D × T /\
-  WF_Matrix Tinv /\ WF_Matrix D /\ WF_Matrix T. 
+Definition Diagonalization {n : nat} (Tinv D T M : @WF_Square n) : Prop :=
+  Diagonal D /\ Minv (`T) (`Tinv) /\ M = Tinv × D × T.
 
-Definition Diagonalizable {n : nat} (A : Square n) :=
-  exists (Tinv D T : Square n),
+Definition Diagonalizable {n : nat} (A : @WF_Square n) :=
+  exists (Tinv D T : @WF_Square n),
     Diagonalization Tinv D T A.
 
 (* Element-wise exponentiation of a diagonal matrix *)
-Definition exp_diag {n : nat} (D : Square n) :=
+Definition pre_exp_diag {n : nat} (D : Square n) :=
   (fun i j => if (i <? n) && (i =? j) then exp (fst (D i j)) else 0).
 
+Lemma exp_diag_wf :
+  forall n (D : Square n),
+    @WF_Matrix n n (pre_exp_diag D).
+Proof.
+  unfold WF_Matrix.
+  intros.
+  unfold pre_exp_diag.
+  case_eq ((x <? n) && (x =? y)).
+  + intro cond.
+    apply andb_prop in cond.
+    destruct cond.
+    apply Nat.ltb_lt in H0.
+    apply Nat.eqb_eq in H1.
+    lia.
+  + reflexivity.
+Qed.
+
+Definition exp_diag {n : nat} (D : @WF_Square n) :=
+  exist WF_Matrix (pre_exp_diag (`D)) (exp_diag_wf n (`D)).
+
+Definition is_real {n : nat} (D : @WF_Square n) :=
+  forall r c, (`D) r c = Re ((`D) r c).
+
+Definition pre_diag_psum {n : nat} (D : @WF_Square n) (N : nat) : Square n :=
+  fun r c => if (r <? n) && (r =? c) then
+    sum_f_R0 (fun (i : nat) => (/ INR (fact i) * (Re ((`D) r r))) ^ i)%R N
+  else 0.
+
+Lemma diag_psum_wf :
+  forall n D N, @WF_Matrix n n (pre_diag_psum D N).
+Proof.
+  unfold WF_Matrix.
+  intros.
+  unfold pre_diag_psum.
+  case_eq ((x <? n) && (x =? y)).
+  + intro cond.
+    apply andb_prop in cond.
+    destruct cond.
+    apply Nat.ltb_lt in H0.
+    apply Nat.eqb_eq in H1.
+    lia.
+  + reflexivity.
+Qed.
+
+Definition diag_psum {n : nat} (D : @WF_Square n) (N : nat) : @WF_Square n :=
+  exist WF_Matrix (pre_diag_psum D N) (diag_psum_wf n D N).
+
+Lemma diag_psum_correct {n : nat} (D : @WF_Square n) :
+  mat_psum (fun k => (/ (INR (fact k))) .* (k ⨉ D)) = diag_psum D.
+Proof.
+Admitted.
+
+Print seq_conv.
+
+Print R_dist.
+Search R_dist.
+
+Print MatrixMetricSpace.
+
+
+Require Import Epsilon.
+Print constructive_indefinite_description.
+
+Fixpoint max_natmat_aux (dims : nat) (mat : nat -> nat -> nat) (index : nat) (current : nat) :=
+  let r := (index / dims)%nat in
+  let c := (index mod dims)%nat in
+  let elem := mat r c in
+  let newMax := if elem <? current then current else elem in
+  match index with
+  | O => newMax
+  | S i => max_natmat_aux dims mat i newMax
+  end.
+
+Definition max_natmat (dims : nat) (mat : nat -> nat -> nat) :=
+  max_natmat_aux dims mat (dims * dims - 1)%nat 0.
+
+Lemma max_natmat_correct :
+  forall (dims : nat) mat (r c : nat), (r < dims -> c < dims -> max_natmat dims mat >= mat r c)%nat.
+Proof.
+Admitted.
+
+(* TODO move this elsewhere *)
+Lemma inftyNorm_tight_lt :
+  forall (n : nat) (m : @WF_Square n) bound,
+    (forall r c, Cmod ((`m) r c) < bound) -> inftyNorm_wf m < bound.
+Proof.
+Admitted.
+
+Lemma seq_conv_entrywise_Re {n : nat} (ms : nat -> @WF_Square n) (m : @WF_Square n) :
+  (forall i, is_real (ms i)) ->
+  (forall (r c : nat), seq_conv R_met (fun i => Re ((proj1_sig (ms i)) r c)) (Re (`m r c))) ->
+  seq_conv (MatrixMetricSpace n) ms m.
+Proof.
+  intros ms_real conv_entrywise.
+  unfold seq_conv in conv_entrywise.
+  unfold seq_conv.
+  intros eps eps_pos.
+  Check constructive_indefinite_description.
+  remember (fun (r c : nat) => (constructive_indefinite_description
+    (fun N => forall n0 : nat,
+       (n0 >= N)%nat -> dist R_met (Re ((` (ms n0)) r c)) (Re ((` m) r c)) < eps)
+    (conv_entrywise r c eps eps_pos))) as entry_Ns.
+  clear Heqentry_Ns.
+  exists (max_natmat n (fun r c => ` (entry_Ns r c))).
+  intro N.
+  intro N_large.
+  unfold dist.
+  simpl.
+  unfold dist_mats.
+  apply inftyNorm_tight_lt.
+  intros.
+  (* Have to specify implicit arguments *)
+  assert (let v := (@proj1_sig (Matrix n n) (fun m0 : Matrix n n => @WF_Matrix n n m0)
+      ((ms N) .+ -1 .* m) r c) in Cmod v = Re v) as cmod_re.
+    admit.
+  rewrite cmod_re.
+
+  remember (proj2_sig (entry_Ns r c)) as entry_N_good.
+  simpl in entry_N_good.
+  clear Heqentry_N_good.
+  specialize (entry_N_good N).
+  (* TODO really annoying arithmetic *)
+Admitted.
+
+Lemma mexp_of_diag {n : nat} (D : @WF_Square n) :
+  Diagonal D -> is_real D -> matrix_exponential D (exp_diag D).
+Proof.
+  intros.
+  unfold matrix_exponential.
+  unfold mat_infinite_sum.
+  rewrite diag_psum_correct.
+  apply seq_conv_entrywise_Re. {
+    intros.
+    admit.
+  }
+  intros.
+  unfold diag_psum.
+  unfold pre_diag_psum.
+  simpl.
+  unfold pre_exp_diag.
+  simpl.
+  case_eq (r <? n).
+  + case_eq (r =? c).
+    - intros rc_eq rn_lt.
+      apply Nat.eqb_eq in rc_eq.
+      subst.
+      simpl.
+      (* Some exp stuff; look at standard library *)
+      admit.
+    - (* zero converges to zero *)
+      admit.
+  + (* out of bound, zero *)
+    admit.
+Admitted.
+
 (* Exponentiation of a diagonalizable matrix *)
-Definition is_exp_diag {n : nat} (M M_exp : Square n) : Prop :=
-  exists (Tinv D T : Square n),
+Definition is_exp_diag {n : nat} (M M_exp : @WF_Square n) : Prop :=
+  exists (Tinv D T : @WF_Square n),
     Diagonalization Tinv D T M /\ Diagonalization Tinv (exp_diag D) T M_exp.
+
+(**
 
 (* Two matrices are simultaneously diagonalizable if the following conditions are met *)
 Definition Sim_diag {n : nat} (A B : Square n) :=
@@ -55,8 +217,6 @@ Definition Sim_diag {n : nat} (A B : Square n) :=
 (* Definition of matrix commutation *)
 Definition Mat_commute {n : nat} (A B : Square n) :=
   A × B = B × A.
-
-
 
 (************************************************)
 (** Lemmas on properties of Hermitian matrices **)
@@ -236,6 +396,8 @@ Theorem Commute_sim_diag {n : nat} :
 Proof.
   (* This is gonna be tricky *)
   Admitted.
+
+**)
 
 (* If a matrix M is diagonalizable as M = T^t * D * T, then e^M = T^t * e^D * T *)
 (* This fact is true, but difficult to show because matrix_exponential is defined in terms 
