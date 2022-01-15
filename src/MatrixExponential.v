@@ -376,8 +376,22 @@ Proof.
       assumption.
 Qed.
 
+Lemma inftyNorm_prod {n : nat} (m1 m2 : @WF_Square n) :
+  inftyNorm_wf (m1 × m2) <= INR n * inftyNorm_wf m1 * inftyNorm_wf m2.
+Proof.
+  (* Arithmetics *)
+  Admitted.
+
 Definition dist_mats {n : nat} (m1 m2 : @WF_Square n) : R :=
   inftyNorm_wf (plus_wf m1 (scale_wf (-1) m2)).
+
+Lemma dist_mats_prod {n : nat} (T m1 m2 U: @WF_Square n) :
+  dist_mats (T × m1 × U) (T × m2 × U) <=
+    INR n * INR n * inftyNorm_wf T * inftyNorm_wf U * dist_mats m1 m2.
+Proof.
+  (* Use this somehow *)
+  Check inftyNorm_prod.
+  Admitted.
 
 Lemma dist_mats_pos :
     forall n (m1 m2 : @WF_Square n), dist_mats m1 m2 >= 0.
@@ -481,6 +495,38 @@ Definition MatrixMetricSpace (n : nat) := Build_Metric_Space (@WF_Square n)
     (dist_mats_refl n)
     (dist_mats_tri n).
 
+Lemma mat_conv_mult_nonzero {dim : nat} (Ms : nat -> @WF_Square dim) (T M U : @WF_Square dim) :
+  T <> zero_wf -> (* I don't wanna deal with degenerate cases yet *)
+  U <> zero_wf ->
+  seq_conv (MatrixMetricSpace dim) Ms M ->
+  seq_conv (MatrixMetricSpace dim) (fun i => T × Ms i × U) (T × M × U).
+Proof.
+  unfold seq_conv.
+  intros T_neq0 U_neq0 conv_Ms_M eps eps_pos.
+  remember ((/ (INR dim * inftyNorm_wf T * INR dim * inftyNorm_wf U)) * eps)%R as epsMs.
+  assert (epsMs > 0) as epsMs_pos.
+    admit.
+  specialize (conv_Ms_M epsMs).
+  specialize (conv_Ms_M epsMs_pos).
+  destruct conv_Ms_M as [N Ms_M_close].
+  exists N.
+  intro n.
+  specialize (Ms_M_close n).
+  intro n_large.
+  specialize (Ms_M_close n_large).
+  subst.
+  (* TODO use this *)
+  Check dist_mats_prod.
+Admitted.
+
+Lemma mat_conv_mult {dim : nat} (Ms : nat -> @WF_Square dim) (T M U : @WF_Square dim) :
+  seq_conv (MatrixMetricSpace dim) Ms M ->
+  seq_conv (MatrixMetricSpace dim) (fun i => T × Ms i × U) (T × M × U).
+Proof.
+  (* TODO apply lemma for nonzero case; handle zero cases separately *)
+  Check mat_conv_mult_nonzero.
+Admitted.
+
 (* -- Matrix exponential -- *)
 (**
  * Now we are almost ready to define matrix exponential.
@@ -504,6 +550,36 @@ Definition mat_infinite_sum {dim : nat} (seq : nat -> @WF_Square dim) (result : 
  *)
 Definition matrix_exponential {n : nat} (M Mexp : @WF_Square n) :=
     mat_infinite_sum (fun k => scale_wf (/ (INR (fact k))) (mmult_wf k M) ) Mexp.
+
+Lemma matrix_exponential_conjugate {n : nat} (T Tinv D Dexp : @WF_Square n) :
+  Minv (`T) (`Tinv) ->
+  matrix_exponential D Dexp ->
+  matrix_exponential (T × D × Tinv) (T × Dexp × Tinv).
+Proof.
+  intros Tinv_correct Dexp_def.
+  unfold matrix_exponential.
+  unfold mat_infinite_sum.
+  assert ((mat_psum (fun k : nat => / INR (fact k) .* k ⨉ (T × D × Tinv))) =
+    fun k => T ×
+      (mat_psum (fun i => / INR (fact i) .* i ⨉ D) k) ×
+      Tinv) as factor_T. {
+    assert ((fun k : nat => / INR (fact k) .* k ⨉ (T × D × Tinv)) =
+      fun k : nat => T × (/ INR (fact k) .* k ⨉ D) × Tinv) as cancel_minvs. {
+      apply functional_extensionality.
+      intros k.
+      (* TODO Matrix algebra *)
+      admit.
+    }
+    rewrite cancel_minvs.
+    (* TODO state and use distributivity of mat_psum *)
+    admit.
+  }
+  rewrite factor_T.
+  apply mat_conv_mult.
+  unfold matrix_exponential in Dexp_def.
+  unfold mat_infinite_sum in Dexp_def.
+  assumption.
+Admitted.
 
 (** Will bring the rest back later.
 
