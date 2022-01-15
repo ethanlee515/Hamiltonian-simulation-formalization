@@ -34,6 +34,20 @@ Definition plus_wf {n : nat} (m1 m2 : @WF_Square n) :=
 Definition scale_wf {n : nat} (r : C) (m : @WF_Square n) :=
   exist WF_Matrix (scale r (`m)) (WF_scale r (`m) (proj2_sig m)).
 
+Definition mmult_wf {n : nat} (k : nat) (m : @WF_Square n) :=
+  exist WF_Matrix (Mmult_n k (`m)) (WF_Mmult_n k (`m) (proj2_sig m)).
+
+Definition mult_wf {n : nat} (m1 m2 : @WF_Square n) :=
+  exist WF_Matrix (Mmult (`m1) (`m2)) (WF_mult (`m1) (`m2) (proj2_sig m1) (proj2_sig m2)).
+
+Declare Scope wf_scope.
+Open Scope wf_scope.
+
+Infix ".+" := plus_wf (at level 50, left associativity) : wf_scope.
+Infix ".*" := scale_wf (at level 40, left associativity) : wf_scope.
+Infix "×" := mult_wf (at level 40, left associativity) : wf_scope.
+Notation "k ⨉ m" := (mmult_wf k m) (at level 30, no associativity) : wf_scope.
+
 (* -- Showing that matrices form a metric space -- *)
 
 (* We could define operator norm and show that the norm induces a metric...
@@ -158,7 +172,6 @@ Proof.
     case_eq (Rlt_dec (Cmod (mat (S I / n)%nat (S I mod n))) 0).
     - intros.
       assert (0 <= Cmod (mat (S I / n)%nat (S I mod n))).
-        Print Cmod_ge_0.
         apply Cmod_ge_0.
       lra.
     - intros.
@@ -396,7 +409,7 @@ Proof.
     unfold plus_wf in diff_0.
     unfold scale_wf in diff_0.
     simpl in diff_0.
-    assert (val1 .+ -1 .* val2 = Zero).
+    assert (val1 .+ -1 .* val2 = Zero)%M.
     unfold zero_wf in diff_0.
     apply proj1_sig_eq in diff_0.
     simpl in diff_0.
@@ -440,7 +453,7 @@ Proof.
       unfold scale_wf.
       unfold zero_wf.
       simpl.
-      assert (`m2 .+ -1 .* `m2 = Zero) as arg_is_zero.
+      assert (`m2 .+ -1 .* `m2 = Zero)%M as arg_is_zero.
         apply functional_extensionality.
         intro r.
         apply functional_extensionality.
@@ -457,11 +470,11 @@ Proof.
 Qed.
 
 Lemma dist_mats_tri :
-    forall n (m1 m2 m3 : Square n), dist_mats m1 m2 <= dist_mats m1 m3 + dist_mats m3 m2.
+    forall n (m1 m2 m3 : @WF_Square n), dist_mats m1 m2 <= dist_mats m1 m3 + dist_mats m3 m2.
 Proof.
     Admitted.
 
-Definition MatrixMetricSpace (n : nat) := Build_Metric_Space (Square n)
+Definition MatrixMetricSpace (n : nat) := Build_Metric_Space (@WF_Square n)
     dist_mats
     (dist_mats_pos n)
     (dist_mats_sym n)
@@ -473,14 +486,14 @@ Definition MatrixMetricSpace (n : nat) := Build_Metric_Space (Square n)
  * Now we are almost ready to define matrix exponential.
  * First we define partial and infinite sum of matrices.
  *)
-Fixpoint mat_psum {dim : nat} (seq : nat -> Square dim) (N : nat) : Square dim :=
+Fixpoint mat_psum {dim : nat} (seq : nat -> @WF_Square dim) (N : nat) : @WF_Square dim :=
     match N with
     | O => seq O
-    | S pred => Mplus (mat_psum seq pred) (seq N)
+    | S pred => plus_wf (mat_psum seq pred) (seq N)
     end.
   
 (* The infinite sum is defined as a relation, since a sum may not converge. *)
-Definition mat_infinite_sum {dim : nat} (seq : nat -> Square dim) (result : Square dim) :=
+Definition mat_infinite_sum {dim : nat} (seq : nat -> @WF_Square dim) (result : @WF_Square dim) :=
     seq_conv (MatrixMetricSpace dim) (mat_psum seq) result.
 
 (*
@@ -489,13 +502,15 @@ Definition mat_infinite_sum {dim : nat} (seq : nat -> Square dim) (result : Squa
  * I regret it more with every passing day.
  * Is it what they call technical debt?
  *)
-Definition matrix_exponential {n : nat} (M Mexp : Square n) :=
-    mat_infinite_sum (fun k => scale (/ (INR (fact k))) (Mmult_n k M) ) Mexp.
+Definition matrix_exponential {n : nat} (M Mexp : @WF_Square n) :=
+    mat_infinite_sum (fun k => scale_wf (/ (INR (fact k))) (mmult_wf k M) ) Mexp.
+
+(** Will bring the rest back later.
 
 (* -- Facts on matrix exponential -- *)
 
 Lemma mexp_scale :
-  forall (dim : nat) (A expA: Square dim) (sc : R),
+  forall (dim : nat) (A expA: @WF_Square dim) (sc : R),
     matrix_exponential A expA ->
     matrix_exponential (scale sc A) (scale (exp sc) expA).
 Proof.
@@ -649,3 +664,5 @@ Lemma padIs_scale :
   forall num_qubits A sc loc,
     padIs num_qubits (scale sc A) loc = scale sc (padIs num_qubits A loc).
 Proof. Admitted.
+
+**)
