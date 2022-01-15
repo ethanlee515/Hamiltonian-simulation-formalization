@@ -24,12 +24,15 @@ Definition seq_conv (X : Metric_Space) (seq : nat -> Base X) (lim : Base X) :=
 (* -- Well-formed matrices type -- *)
 (* The properties we're interested in require well-formedness *)
 
-Record WF_Square {n : nat} := Build_WF_Square {
-  m_mat : Square n;
-  m_wf : WF_Matrix m_mat
-}.
+Definition WF_Square {n : nat} : Type := { m : (@Square n) | WF_Matrix m }.
 
-Definition zero_wf {n : nat} := @Build_WF_Square n Zero (WF_Zero n n).
+Definition zero_wf {n : nat} : (@WF_Square n) := exist WF_Matrix Zero (@WF_Zero n n).
+
+Definition plus_wf {n : nat} (m1 m2 : @WF_Square n) :=
+  exist WF_Matrix ((`m1) .+ (`m2)) (WF_plus (`m1) (`m2) (proj2_sig m1) (proj2_sig m2)).
+
+Definition scale_wf {n : nat} (r : C) (m : @WF_Square n) :=
+  exist WF_Matrix (scale r (`m)) (WF_scale r (`m) (proj2_sig m)).
 
 (* -- Showing that matrices form a metric space -- *)
 
@@ -187,7 +190,7 @@ Proof.
 Qed.
 
 Definition inftyNorm_wf {n : nat} (m : @WF_Square n) :=
-  inftyNorm m.(m_mat).
+  inftyNorm (proj1_sig m).
 
 Lemma inftyNormwf_nonneg :
   forall (n : nat) (m : @WF_Square n), inftyNorm_wf m >= 0.
@@ -198,7 +201,7 @@ Proof.
 Qed.
 
 Lemma inftyNormwf_bound :
-  forall (n : nat) (m : @WF_Square n) r c, (n > 0)%nat -> inftyNorm_wf m >= Cmod (m.(m_mat) r c).
+  forall (n : nat) (m : @WF_Square n) r c, (n > 0)%nat -> inftyNorm_wf m >= Cmod ((`m) r c).
 Proof.
   intros.
   destruct m as [val wf].
@@ -210,7 +213,6 @@ Proof.
     - intros c_bound r_bound.
       apply Nat.ltb_lt in c_bound.
       apply Nat.ltb_lt in r_bound.
-      Check inftyNorm_aux_correct.
       remember (r * n + c)%nat as index.
       assert (r = (index / n)%nat) as r_val.
         rewrite Heqindex.
@@ -232,7 +234,6 @@ Proof.
       rewrite c_val.
       apply inftyNorm_aux_correct.
         rewrite Heqindex.
-        Print plus_le_compat.
         assert (n * n - 1 = (n * (n - 1)) + (n - 1))%nat as split_index.
           rewrite Nat.add_sub_assoc.
           rewrite mult_n_Sm.
@@ -269,17 +270,16 @@ Proof.
       apply Rge_refl.
 Qed.
 
-Lemma inftyNorm_zero :
+Lemma inftyNorm_zero_aux :
   forall (n : nat) (m : @WF_Square n), (n > 0)%nat -> @inftyNorm_wf n m = 0 -> m = zero_wf.
 Proof.
   intros.
   unfold zero_wf.
-  assert (forall r c, inftyNorm_wf m >= Cmod (m_mat m r c)) as inftyNorm_bound_inst.
+  assert (forall r c, inftyNorm_wf m >= Cmod (`m r c)) as inftyNorm_bound_inst.
     intros.
     apply inftyNormwf_bound.
     assumption.
   destruct m as [val wf].
-  simpl in inftyNorm_bound_inst.
   unfold inftyNorm_wf in inftyNorm_bound_inst.
   simpl in inftyNorm_bound_inst.
   unfold inftyNorm_wf in H0.
@@ -295,23 +295,79 @@ Proof.
     intros.
     apply Cmod_eq_0.
     apply cmod_is_0.
-  assert (Zero = val) as val_zero.
+  assert (val = Zero) as val_zero.
     apply functional_extensionality.
     intro r.
     apply functional_extensionality.
     intro c.
     unfold Zero.
-    symmetry.
     apply entries_zero.
-  destruct val_zero.
+  subst.
   f_equal.
   apply proof_irrelevance.
 Qed.
 
-Definition dist_mats {n : nat} (m1 m2 : Square n) : R := inftyNorm (Mplus m1 (scale (-1) m2)).
+Lemma inftyNorm_zero :
+  forall (n : nat) (m : @WF_Square n), @inftyNorm_wf n m = 0 -> m = zero_wf.
+Proof.
+  intros.
+  case_eq (n =? 0)%nat.
+  * intros.
+    apply Nat.eqb_eq in H0.
+    destruct m as [val wf].
+    unfold zero_wf.
+    assert (Zero = val) as val_zero.
+      apply functional_extensionality.
+      intro r.
+      apply functional_extensionality.
+      intro c.
+      unfold Zero.
+      unfold WF_Matrix in wf.
+      clear H.
+      rewrite H0 in wf.
+      symmetry.
+      apply wf.
+      lia.
+    destruct val_zero.
+    f_equal.
+    apply proof_irrelevance.
+  * intros.
+    assert (n > 0)%nat.
+      apply Nat.eqb_neq in H0.
+      lia.
+    apply inftyNorm_zero_aux; try assumption.
+Qed.
+
+Lemma inftyNorm_of_zero :
+  forall (n : nat), @inftyNorm_wf n zero_wf = 0.
+Proof.
+  intros.
+  unfold inftyNorm_wf.
+  unfold zero_wf.
+  simpl.
+  unfold inftyNorm.
+  induction (n * n - 1)%nat.
+  + simpl.
+    case_eq (Rlt_dec (Cmod (@Zero n n (0 / n)%nat (0 mod n))) 0).
+    - reflexivity.
+    - intros.
+      unfold Zero.
+      apply Cmod_0.
+  + simpl.
+    case_eq (Rlt_dec (Cmod (@Zero n n (S n0 / n)%nat (S n0 mod n))) 0).
+    - intros. assumption.
+    - intros.
+      assert (Cmod (@Zero n n (S n0 / n)%nat (S n0 mod n)) = 0).
+        unfold Zero. apply Cmod_0.
+      rewrite H0.
+      assumption.
+Qed.
+
+Definition dist_mats {n : nat} (m1 m2 : @WF_Square n) : R :=
+  inftyNorm_wf (plus_wf m1 (scale_wf (-1) m2)).
 
 Lemma dist_mats_pos :
-    forall n (m1 m2 : Square n), dist_mats m1 m2 >= 0.
+    forall n (m1 m2 : @WF_Square n), dist_mats m1 m2 >= 0.
 Proof.
   intros.
   unfold dist_mats.
@@ -320,14 +376,85 @@ Proof.
 Qed.
 
 Lemma dist_mats_sym :
-    forall n (m1 m2 : Square n), dist_mats m1 m2 = dist_mats m2 m1.
+    forall n (m1 m2 : @WF_Square n), dist_mats m1 m2 = dist_mats m2 m1.
 Proof.
     Admitted.
 
 Lemma dist_mats_refl :
-    forall n (m1 m2 : Square n), dist_mats m1 m2 = 0 <-> m1 = m2.
+    forall n (m1 m2 : @WF_Square n), dist_mats m1 m2 = 0 <-> m1 = m2.
 Proof.
-    Admitted.
+  intros.
+  split.
+  + intros.
+    unfold dist_mats in H.
+    assert (plus_wf m1 (scale_wf (-1) m2) = zero_wf) as diff_0.
+      apply inftyNorm_zero.
+      assumption.
+    destruct m1 as [val1 wf1].
+    destruct m2 as [val2 wf2].
+    unfold inftyNorm_wf in diff_0.
+    unfold plus_wf in diff_0.
+    unfold scale_wf in diff_0.
+    simpl in diff_0.
+    assert (val1 .+ -1 .* val2 = Zero).
+    unfold zero_wf in diff_0.
+    apply proj1_sig_eq in diff_0.
+    simpl in diff_0.
+    assumption.
+    assert (val1 = val2) as vals_eq.
+      apply functional_extensionality.
+      intro r.
+      apply functional_extensionality.
+      intro c.
+      apply (f_equal (fun m => m r c)) in H0.
+      unfold Zero in H0.
+      unfold ".+" in H0.
+      unfold ".*" in H0.
+      assert (forall (x y : C), (x + -1 * y = 0)%C -> (x = y)%C).
+        intros.
+        assert (IZR (Zneg xH) = Ropp R1) as minus1_R.
+          lra.
+        rewrite minus1_R in H0.
+        rewrite minus1_R in H1.
+        rewrite RtoC_opp in H0.
+        rewrite RtoC_opp in H1.
+        rewrite <- Copp_mult_distr_l in H1.
+        rewrite <- Cminus_unfold in H1.
+        rewrite Cmult_1_l in H1.
+        apply c_proj_eq.
+          apply (f_equal fst) in H1.
+          simpl in H1.
+          lra.
+          apply (f_equal snd) in H1.
+          simpl in H1.
+          lra.
+      apply H1 in H0.
+      assumption.
+    apply eq_sig_uncurried.
+    exists vals_eq.
+    apply proof_irrelevance.
+  + intros. subst.
+    unfold dist_mats.
+    assert (plus_wf m2 (scale_wf (-1) m2) = zero_wf) as wf_arg_is_zero.
+      unfold plus_wf.
+      unfold scale_wf.
+      unfold zero_wf.
+      simpl.
+      assert (`m2 .+ -1 .* `m2 = Zero) as arg_is_zero.
+        apply functional_extensionality.
+        intro r.
+        apply functional_extensionality.
+        intro c.
+        unfold Zero.
+        unfold ".+".
+        unfold ".*".
+        lca.
+      apply eq_exist_uncurried.
+      exists arg_is_zero.
+      apply proof_irrelevance.
+   rewrite wf_arg_is_zero.
+   apply inftyNorm_of_zero.
+Qed.
 
 Lemma dist_mats_tri :
     forall n (m1 m2 m3 : Square n), dist_mats m1 m2 <= dist_mats m1 m3 + dist_mats m3 m2.
