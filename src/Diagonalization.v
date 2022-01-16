@@ -19,17 +19,14 @@ Open Scope wf_scope.
 (** Linear Algebraic Definitions **)
 (**********************************)
 
-(** 
 
 (* Element-wise definition of Hermitian *)
-Definition Herm {n : nat} (A : Square n) : Prop :=
-  forall i j, (A i j) = Cconj (A j i).
+Definition Herm {n : nat} (A : @WF_Square n) : Prop :=
+  forall i j, (`A i j) = Cconj (`A j i).
 
 (* Adjoint definition of Hermitian *)
-Definition Herm_alternate {n : nat} (A : Square n) :=
-  A = A †.
-
-**)
+Definition Herm_alternate {n : nat} (A : @WF_Square n) :=
+  `A = (`A) †.
 
 (* D is a diagonal matrix if the following conditions are met *)
 Definition Diagonal {n : nat} (D : @WF_Square n) :=
@@ -99,16 +96,7 @@ Lemma diag_psum_correct {n : nat} (D : @WF_Square n) :
 Proof.
 Admitted.
 
-Print seq_conv.
-
-Print R_dist.
-Search R_dist.
-
-Print MatrixMetricSpace.
-
-
 Require Import Epsilon.
-Print constructive_indefinite_description.
 
 Fixpoint max_natmat_aux (dims : nat) (mat : nat -> nat -> nat) (index : nat) (current : nat) :=
   let r := (index / dims)%nat in
@@ -206,6 +194,101 @@ Admitted.
 Definition is_exp_diag {n : nat} (M M_exp : @WF_Square n) : Prop :=
   exists (Tinv D T : @WF_Square n),
     Diagonalization Tinv D T M /\ Diagonalization Tinv (exp_diag D) T M_exp.
+
+Theorem herm_diagonalizable {n : nat} (H : @WF_Square n) :
+  Herm H -> (exists (D T Tinv : @WF_Square n), Diagonalization Tinv D T H /\ is_real D).
+Proof.
+Admitted.
+
+Theorem herm_eigenvals_real {n : nat} (H D T Tinv : @WF_Square n) :
+  Herm H -> Diagonalization Tinv D T H -> is_real D.
+Proof.
+Admitted.
+
+Theorem exp_diag_implies_mexp {n : nat} (M M_exp : @WF_Square n) :
+    Herm M -> is_exp_diag M M_exp -> matrix_exponential M M_exp.
+Proof.
+  intros herm H.
+  unfold is_exp_diag in H.
+  destruct H as [Tinv H].
+  destruct H as [D H].
+  destruct H as [T H].
+  destruct H as [M_diag Mexp_diag].
+  unfold Diagonalization in M_diag.
+  destruct M_diag as [d_diag M_diag].
+  destruct M_diag as [tinv M_diag].
+  destruct Mexp_diag as [dexp_diag Mexp_diag].
+  destruct Mexp_diag as [tinv' Mexp_diag].
+  subst.
+  clear tinv'.
+  apply matrix_exponential_conjugate. {
+    apply Minv_symm.
+    assumption.
+  }
+  apply mexp_of_diag; try assumption.
+  apply herm_eigenvals_real with (H := (Tinv × D × T)) (T0 := T) (Tinv0 := Tinv).
+  + assumption.
+  + split.
+    - assumption.
+    - split.
+      * assumption.
+      * reflexivity.
+Qed.
+
+Theorem mexp_implies_exp_diag {n : nat} (M M_exp : @WF_Square n) :
+    Herm M -> matrix_exponential M M_exp -> is_exp_diag M M_exp.
+Proof.
+  intros herm mexp.
+  apply herm_diagonalizable in herm.
+  destruct herm as [D herm].
+  destruct herm as [T herm].
+  destruct herm as [Tinv herm].
+  destruct herm as [m_diag d_real].
+  unfold Diagonalization in m_diag.
+  destruct m_diag as [d_diag m_diag].
+  destruct m_diag as [tinv m_def].
+  subst.
+  unfold is_exp_diag.
+  exists Tinv.
+  exists D.
+  exists T.
+  split.
+  + (* just unfold and use assumptions *)
+    admit.
+  + unfold Diagonalization.
+    split.
+    - (* result of exp_diag is still diagonal *)
+      admit.
+    - split. {
+        assumption.
+      }
+      (* now the interesting part... *)
+      Search seq_conv.
+      Print seq_conv.
+      Search limit_in.
+      Print limit_in.
+      Check single_limit.
+      assert (matrix_exponential (Tinv × D × T) (Tinv × (exp_diag D) × T)). {
+        Search matrix_exponential.
+        apply matrix_exponential_conjugate.
+        Search Minv.
+        apply Minv_symm.
+        assumption.
+        Search exp_diag.
+        apply mexp_of_diag; try assumption.
+      }
+      Search matrix_exponential.
+      apply mat_exp_unique with (M := Tinv × D × T); try assumption.
+Admitted.
+
+Theorem exp_diag_correct {n : nat} (M M_exp : @WF_Square n) :
+  Herm M -> matrix_exponential M M_exp <-> is_exp_diag M M_exp.
+Proof.
+  intros.
+  split.
+  + apply mexp_implies_exp_diag; assumption.
+  + apply exp_diag_implies_mexp; assumption.
+Qed.
 
 (**
 
@@ -397,15 +480,16 @@ Proof.
   (* This is gonna be tricky *)
   Admitted.
 
-**)
 
 (* If a matrix M is diagonalizable as M = T^t * D * T, then e^M = T^t * e^D * T *)
 (* This fact is true, but difficult to show because matrix_exponential is defined in terms 
    of an infinite sum. This theorem was crucial however in simplifying many other proofs
    involving matrix exponentials *)
-Theorem exp_diag_correct {n : nat} (M M_exp : Square n) :
-    Diagonalizable M -> matrix_exponential M M_exp <-> is_exp_diag M M_exp.
-Proof. Admitted.
+Theorem exp_diag_correct {n : nat} (M M_exp : @WF_Square n) :
+    Herm M -> matrix_exponential M M_exp -> is_exp_diag M M_exp.
+Proof.
+  Print is_exp_diag.
+Admitted.
 (* We only really need to show the -> direction *)
 
 (* e^D for diagonal matrix D is well-formed *)
@@ -558,3 +642,4 @@ Proof. Admitted.
   Admitted.
 *)
 
+**)

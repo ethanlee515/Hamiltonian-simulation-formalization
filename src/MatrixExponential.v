@@ -682,22 +682,24 @@ Proof.
   apply dist_refl.
   Admitted.
 
+  **)
   
-  
-Lemma mat_exp_unique {n : nat} : forall (M Mexp1 Mexp2 : Square n),
+Lemma mat_exp_unique {n : nat} : forall (M Mexp1 Mexp2 : @WF_Square n),
     matrix_exponential M Mexp1 -> matrix_exponential M Mexp2 -> Mexp1 = Mexp2.
 Proof.
   intros M M1 M2 H1 H2.
-  unfold matrix_exponential in *. unfold mat_infinite_sum in *. Locate Metric_Space.
+  unfold matrix_exponential in *. unfold mat_infinite_sum in *.
+  (*
   eapply seq_conv_unique with (X := MatrixMetricSpace n).
   apply H1. apply H2.
-Qed.  
+  *)
+Admitted.
+
+(**
 
 Lemma mat_exp_WF {n : nat} : forall (M Mexp : Square n),
     matrix_exponential M Mexp -> WF_Matrix M -> WF_Matrix Mexp.
 Proof. Admitted.
-
-
 
 (* More matrix exponential facts... *)
 
