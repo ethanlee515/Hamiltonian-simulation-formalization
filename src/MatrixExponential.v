@@ -53,74 +53,99 @@ Notation "k ⨉ m" := (mmult_wf k m) (at level 30, no associativity) : wf_scope.
 (* We could define operator norm and show that the norm induces a metric...
  * but that's too much real analysis.
  * I think we'll be cheap today and go with infinity norm.
+ *
+ * We start with taking max over a real matrix, since it will be useful later.
  *)
 
-Fixpoint inftyNorm_aux {n : nat} (mat : Square n) (i : nat) (currentMax : R) : R :=
+(* TODO define max? *)
+
+Print Matrix.
+
+Definition RealSquare (n : nat) := nat -> nat -> R.
+
+Definition isWF_ReSq {n : nat} (M : RealSquare n) : Prop :=
+  forall (x y : nat), (x >= n \/ y >= n)%nat -> M x y = 0.
+
+Definition WF_RSquare {n : nat} : Type := { m : (@RealSquare n) | isWF_ReSq m }.
+
+Fixpoint rSqMax_aux {n : nat}
+                     (mat : RealSquare n)
+                     (i : nat)
+                     (currentMax : R)
+                     (currentR currentC : nat)
+                     : R * (nat * nat) :=
   let r := (i / n)%nat in
   let c := (i mod n)%nat in
-  let elem := Cmod (mat r c) in
+  let elem := mat r c in
   (* Apparently this works... *)
-  let newMax := if Rlt_dec elem currentMax then currentMax else elem in
+  let '(newMax, newR, newC) :=
+    if Rlt_dec elem currentMax then 
+      (currentMax, currentR, currentC)
+    else
+      (elem, r, c)
+    in
   match i with
-  | O => newMax
-  | S i' => inftyNorm_aux mat i' newMax
+  | O => (newMax, (newR, newC))
+  | S i' => rSqMax_aux mat i' newMax newR newC
   end.
 
-Lemma if_both_nonneg :
-  forall a b c d, a >= 0 -> b >= 0 -> (if Rlt_dec c d then a else b) >= 0.
-Proof.
-  intros.
-  case (Rlt_dec c d); intro; assumption.
-Qed.
-
-Lemma inftyNorm_aux_nonneg :
-  forall n mat i m, m >= 0 -> @inftyNorm_aux n mat i m >= 0.
+Lemma rSqMax_aux_nonneg :
+  forall n mat idx m r c,
+    m >= 0 ->
+    (forall i j, mat i j >= 0) ->
+    fst (@rSqMax_aux n mat idx m r c) >= 0.
 Proof.
   intros.
   generalize dependent m.
-  induction i.
+  generalize dependent r.
+  generalize dependent c.
+  induction idx.
   + intros.
-    unfold inftyNorm_aux.
-    apply if_both_nonneg.
-    - assumption.
-    - apply Rle_ge.
-      apply Cmod_ge_0.
+    unfold rSqMax_aux.
+    destruct (Rlt_dec (mat (0 / n)%nat (0 mod n)) m).
+    - auto.
+    - simpl. lra.
   + simpl.
     intros.
-    apply IHi.
-    apply if_both_nonneg; try assumption.
-    apply Rle_ge.
-    apply Cmod_ge_0.
+    destruct (Rlt_dec (mat (S idx / n)%nat (S idx mod n)) m).
+    - apply IHidx; auto.
+    - apply IHidx. lra.
 Qed.
 
-Lemma inftyNorm_aux_runningMax_monotonic:
-  forall n mat i m1 m2, m1 >= m2 -> @inftyNorm_aux n mat i m1 >= @inftyNorm_aux n mat i m2.
+Lemma rSqMax_aux_runningMax_monotonic:
+  forall n mat i m1 r1 c1 m2 r2 c2,
+    m1 >= m2 ->
+    fst (@rSqMax_aux n mat i m1 r1 c1) >= fst (@rSqMax_aux n mat i m2 r2 c2).
 Proof.
   intros.
   generalize dependent m2.
   generalize dependent m1.
+  generalize dependent r2.
+  generalize dependent r1.
+  generalize dependent c2.
+  generalize dependent c1.
   induction i.
   + simpl.
     intros.
-    case (Rlt_dec (Cmod (mat (0 / n)%nat (0 mod n))) m1).
+    case (Rlt_dec (mat (0 / n)%nat (0 mod n)) m1).
     * intros.
-      case (Rlt_dec (Cmod (mat (0 / n)%nat (0 mod n))) m2).
+      case (Rlt_dec (mat (0 / n)%nat (0 mod n)) m2).
       - intro. assumption.
-      - lra.
+      - intro. simpl. lra.
     * intros.
       apply Rnot_lt_ge in n0.
-      assert (Cmod (mat (0 / n)%nat (0 mod n)) >= m2).
-        apply Rge_trans with (r2 := m1); assumption.
-      case_eq (Rlt_dec (Cmod (mat (0 / n)%nat (0 mod n))) m2).
+      simpl.
+      case_eq (Rlt_dec (mat (0 / n)%nat (0 mod n)) m2).
       - intros.
-        assumption.
+        simpl. lra.
       - intros.
+        simpl.
         apply Rge_refl.
   + simpl.
     intros.
-    case (Rlt_dec (Cmod (mat (S i / n)%nat (S i mod n)))).
+    case (Rlt_dec (mat (S i / n)%nat (S i mod n))).
     * intros.
-      case (Rlt_dec (Cmod (mat (S i / n)%nat (S i mod n))) m2).
+      case (Rlt_dec (mat (S i / n)%nat (S i mod n)) m2).
       - intros.
         apply IHi. assumption.
       - intros.
@@ -129,77 +154,108 @@ Proof.
         apply Rlt_gt.
         assumption.
     * intros.
-      case (Rlt_dec (Cmod (mat (S i / n)%nat (S i mod n))) m2).
+      case (Rlt_dec (mat (S i / n)%nat (S i mod n)) m2).
       - intros. lra.
       - lra.
 Qed.
 
-Lemma inftyNorm_aux_running_max_correct:
-  forall n mat i m y, m >= y -> @inftyNorm_aux n mat i m >= y.
+Lemma rSqMax_aux_running_max_correct:
+  forall n mat i m r c y, m >= y -> fst (@rSqMax_aux n mat i m r c) >= y.
 Proof.
   intros.
   induction i.
   + simpl.
-    case (Rlt_dec (Cmod (mat (0 / n)%nat (0 mod n))) m).
+    case (Rlt_dec (mat (0 / n)%nat (0 mod n)) m).
     - intro. assumption.
     - intro.
       apply Rnot_lt_ge in n0.
       apply Rge_trans with (r2 := m); assumption.
   + simpl.
-    apply Rge_trans with (r2 := inftyNorm_aux mat i m).
-    - apply inftyNorm_aux_runningMax_monotonic.
-      case (Rlt_dec (Cmod (mat (S i / n)%nat (S i mod n))) m); lra.
+    apply Rge_trans with (r2 := fst (rSqMax_aux mat i m r c)).
+    - simpl.
+      Check rSqMax_aux_runningMax_monotonic.
+      case_eq (Rlt_dec (mat (S i / n)%nat (S i mod n)) m).
+      * intros.
+        apply rSqMax_aux_runningMax_monotonic.
+        apply Rge_refl.
+      * intros.
+        apply rSqMax_aux_runningMax_monotonic.
+        lra.
     - assumption.
 Qed.
 
-Lemma inftyNorm_aux_correct:
-  forall n mat i I,
-    (i <= I)%nat -> @inftyNorm_aux n mat I 0 >= Cmod (mat (i / n)%nat (i mod n)%nat).
+Lemma rSqMax_aux_correct:
+  forall n mat i I m r c,
+    (i <= I)%nat ->
+    m >= 0 ->
+    (forall x y, mat x y >= 0) ->
+    fst (@rSqMax_aux n mat I m r c) >= mat (i / n)%nat (i mod n)%nat.
 Proof.
   intros.
   generalize dependent i.
+  generalize dependent m.
+  generalize dependent r.
+  generalize dependent c.
   induction I.
   + intros.
     simpl.
     assert (i = 0%nat).
       lia.
     subst.
-    case_eq (Rlt_dec (Cmod (mat (0 / n)%nat (0 mod n))) 0).
-    - intros. lra.
-    - intros. lra.
+    case_eq (Rlt_dec (mat (0 / n)%nat (0 mod n)) m).
+    - intros. simpl. lra.
+    - intros. simpl. lra.
   + intros.
     simpl.
-    case_eq (Rlt_dec (Cmod (mat (S I / n)%nat (S I mod n))) 0).
+    case_eq (i =? S I).
+    - rewrite Nat.eqb_eq.
+      intro. subst.
+      case_eq (Rlt_dec (mat (S I / n)%nat (S I mod n)) m).
+      * intros.
+        apply rSqMax_aux_running_max_correct.
+        lra.
+      * intros.
+        apply rSqMax_aux_running_max_correct.
+        lra.
     - intros.
-      assert (0 <= Cmod (mat (S I / n)%nat (S I mod n))).
-        apply Cmod_ge_0.
-      lra.
-    - intros.
-      case_eq (i =? S I).
-      * rewrite Nat.eqb_eq.
-        intro. subst.
-        apply inftyNorm_aux_running_max_correct.
-        apply Rge_refl.
-      * intro.
-        apply beq_nat_false in H1.
-        apply Rge_trans with (r2 := inftyNorm_aux mat I 0).
-        ** apply inftyNorm_aux_runningMax_monotonic.
-           apply Rle_ge.
-           apply Cmod_ge_0.
-        ** apply IHI. lia.
+      case_eq (Rlt_dec (mat (S I / n)%nat (S I mod n)) m).
+      * intros.
+        apply IHI.
+        ** assumption.
+        ** intros.
+           apply Nat.eqb_neq in H2.
+           lia.
+      * intros.
+        apply IHI.
+        apply H1.
+        apply Nat.eqb_neq in H2.
+        lia.
 Qed.
 
+(* Max over a real matrix *)
+Definition rSqMax {n : nat} (mat : RealSquare n) := rSqMax_aux mat (n * n - 1) 0 0 0.
+
 Definition inftyNorm {n : nat} (m : Square n) :=
-  inftyNorm_aux m (n * n - 1) 0.
+  fst (@rSqMax n (fun r c => Cmod (m r c))).
+
+Lemma if_both_nonneg :
+  forall a b c d, a >= 0 -> b >= 0 -> (if Rlt_dec c d then a else b) >= 0.
+Proof.
+  intros.
+  case (Rlt_dec c d); intro; assumption.
+Qed.
 
 Lemma inftyNorm_nonneg :
   forall n mat, @inftyNorm n mat >= 0.
 Proof.
   unfold inftyNorm.
   intros.
-  apply inftyNorm_aux_nonneg.
+  apply rSqMax_aux_nonneg.
   apply Req_ge_sym.
   reflexivity.
+  intros.
+  apply Rle_ge.
+  apply Cmod_ge_0.
 Qed.
 
 Definition inftyNorm_wf {n : nat} (m : @WF_Square n) :=
@@ -245,7 +301,7 @@ Proof.
         assumption.
         lia.
       rewrite c_val.
-      apply inftyNorm_aux_correct.
+      apply rSqMax_aux_correct.
         rewrite Heqindex.
         assert (n * n - 1 = (n * (n - 1)) + (n - 1))%nat as split_index.
           rewrite Nat.add_sub_assoc.
@@ -494,6 +550,8 @@ Definition MatrixMetricSpace (n : nat) := Build_Metric_Space (@WF_Square n)
     (dist_mats_sym n)
     (dist_mats_refl n)
     (dist_mats_tri n).
+
+(* TODO mat conv iff entrywise? *)
 
 Lemma mat_conv_mult_nonzero {dim : nat} (Ms : nat -> @WF_Square dim) (T M U : @WF_Square dim) :
   T <> zero_wf -> (* I don't wanna deal with degenerate cases yet *)
