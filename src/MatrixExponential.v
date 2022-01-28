@@ -57,61 +57,158 @@ Notation "k ⨉ m" := (mmult_wf k m) (at level 30, no associativity) : wf_scope.
  * We start with taking max over a real matrix, since it will be useful later.
  *)
 
-(* TODO define max? *)
-
-Print Matrix.
-
 Definition RealSquare (n : nat) := nat -> nat -> R.
 
 Definition isWF_ReSq {n : nat} (M : RealSquare n) : Prop :=
   forall (x y : nat), (x >= n \/ y >= n)%nat -> M x y = 0.
 
-Definition WF_RSquare {n : nat} : Type := { m : (@RealSquare n) | isWF_ReSq m }.
+Definition WF_RSquare {n : nat} : Type := { m : (RealSquare n) | isWF_ReSq m }.
+
+Fixpoint rowMax_aux {n : nat} (mat : RealSquare n) r c currentMax currentC :=
+  let elem := mat r c in
+  let (newMax, newC) :=
+    if Rlt_dec elem currentMax then 
+      (currentMax, currentC)
+    else
+      (elem, c)
+  in
+  match c with
+  | O => (newMax, c)
+  | S c' => rowMax_aux mat r c' newMax newC
+  end.
+
+Lemma rowMax_aux_currentMax :
+  forall n (mat : RealSquare n) r c currentMax currentC y,
+    currentMax >= y -> fst (rowMax_aux mat r c currentMax currentC) >= y.
+Proof.
+  intros.
+  generalize dependent currentMax.
+  generalize dependent currentC.
+  induction c.
+  - intros. simpl.
+    case_eq (Rlt_dec (mat r 0%nat) currentMax).
+    + auto.
+    + intros. simpl. lra.
+  - intros. simpl.
+    case_eq (Rlt_dec (mat r (S c)) currentMax).
+    + auto.
+    + intros. apply IHc. lra.
+Qed.
+
+Lemma rowMax_aux_ub :
+  forall n (mat : RealSquare n) r c currentMax currentC c',
+    (c' <= c)%nat -> fst (rowMax_aux mat r c currentMax currentC) >= mat r c'.
+Proof.
+  intros.
+  generalize dependent currentMax.
+  generalize dependent currentC.
+  induction c.
+  - simpl. intros.
+    assert (c' = 0%nat). {
+      lia.
+    }
+    subst.
+    destruct (Rlt_dec (mat r 0%nat) currentMax); try (simpl; lra).
+  - simpl. intros.
+    destruct (Rlt_dec (mat r (S c)) currentMax).
+    + case_eq (c' =? S c).
+      * rewrite Nat.eqb_eq.
+        intro. subst.
+        apply rowMax_aux_currentMax.
+        lra.
+      * rewrite Nat.eqb_neq.
+        intro.
+        apply IHc.
+        lia.
+    + case_eq (c' =? S c).
+      * rewrite Nat.eqb_eq. intro. subst.
+        apply rowMax_aux_currentMax. lra.
+      * rewrite Nat.eqb_neq. intro. apply IHc. lia.
+Qed.
+
+Definition rowMax {n : nat} (mat : @WF_RSquare n) (r : nat) := rowMax_aux (`mat) r n 0 (n - 1).
+
+Lemma rowMax_ub :
+  forall n (mat : @WF_RSquare n),
+    (forall r c, `mat r c >= 0) ->
+    (forall r c, fst (rowMax mat r) >= (`mat) r c).
+Proof.
+  intros.
+  case_eq (c <? n).
+  + intros c_range.
+    apply rowMax_aux_ub.
+    apply Nat.ltb_lt in c_range.
+    lia.
+  + intros c_range.
+    apply Nat.ltb_nlt in c_range.
+    destruct mat as [m_val wf_m].
+    unfold rowMax.
+    simpl.
+    assert (m_val r c = 0) as out_of_bound. {
+     apply wf_m.
+     lia.
+    }
+    rewrite out_of_bound.
+    simpl in H.
+    apply Rge_trans with (r2 := m_val r%nat 0%nat).
+    - apply rowMax_aux_ub.
+      lia.
+    - apply H.
+Qed.
 
 Fixpoint rSqMax_aux {n : nat}
-                     (mat : RealSquare n)
-                     (i : nat)
+                     (mat : @WF_RSquare n)
+                     (r : nat)
                      (currentMax : R)
-                     (currentR currentC : nat)
+                     (currentR : nat)
+                     (currentC : nat)
                      : R * (nat * nat) :=
-  let r := (i / n)%nat in
-  let c := (i mod n)%nat in
-  let elem := mat r c in
-  (* Apparently this works... *)
+  let (elem, c) := rowMax mat r in
   let '(newMax, newR, newC) :=
     if Rlt_dec elem currentMax then 
       (currentMax, currentR, currentC)
     else
       (elem, r, c)
     in
-  match i with
+  match r with
   | O => (newMax, (newR, newC))
-  | S i' => rSqMax_aux mat i' newMax newR newC
+  | S r' => rSqMax_aux mat r' newMax newR newC
   end.
 
 Lemma rSqMax_aux_nonneg :
-  forall n mat idx m r c,
-    m >= 0 ->
-    (forall i j, mat i j >= 0) ->
-    fst (@rSqMax_aux n mat idx m r c) >= 0.
+  forall n mat r m' r' c',
+    m' >= 0 ->
+    (forall i j, `mat i j >= 0) ->
+    fst (@rSqMax_aux n mat r m' r' c') >= 0.
 Proof.
-  intros.
-  generalize dependent m.
-  generalize dependent r.
-  generalize dependent c.
-  induction idx.
+  intros n mat r m' r' c' m_ge0 entries_ge0.
+  generalize dependent m'.
+  generalize dependent r'.
+  generalize dependent c'.
+  induction r.
   + intros.
     unfold rSqMax_aux.
-    destruct (Rlt_dec (mat (0 / n)%nat (0 mod n)) m).
-    - auto.
-    - simpl. lra.
-  + simpl.
-    intros.
-    destruct (Rlt_dec (mat (S idx / n)%nat (S idx mod n)) m).
-    - apply IHidx; auto.
-    - apply IHidx. lra.
+    destruct_with_eqn (rowMax mat 0).
+    case_eq (Rlt_dec r m').
+    - intros.
+      simpl.
+      assumption.
+    - intros.
+      simpl.
+      lra.
+  + intros.
+    simpl.
+    destruct_with_eqn (rowMax mat (S r)).
+    case_eq (Rlt_dec r0 m').
+    - intros.
+      apply IHr.
+      assumption.
+    - intros.
+      apply IHr.
+      lra.
 Qed.
 
+(*
 Lemma rSqMax_aux_runningMax_monotonic:
   forall n mat i m1 r1 c1 m2 r2 c2,
     m1 >= m2 ->
@@ -173,7 +270,6 @@ Proof.
   + simpl.
     apply Rge_trans with (r2 := fst (rSqMax_aux mat i m r c)).
     - simpl.
-      Check rSqMax_aux_runningMax_monotonic.
       case_eq (Rlt_dec (mat (S i / n)%nat (S i mod n)) m).
       * intros.
         apply rSqMax_aux_runningMax_monotonic.
@@ -182,58 +278,58 @@ Proof.
         apply rSqMax_aux_runningMax_monotonic.
         lra.
     - assumption.
-Qed.
+Qed. *)
 
-Lemma rSqMax_aux_correct:
-  forall n mat i I m r c,
-    (i <= I)%nat ->
-    m >= 0 ->
-    (forall x y, mat x y >= 0) ->
-    fst (@rSqMax_aux n mat I m r c) >= mat (i / n)%nat (i mod n)%nat.
+Lemma rSqMax_aux_ub:
+  forall n (mat : @WF_RSquare n) r m' r' c' r'',
+    (r'' <= r)%nat ->
+    fst (rSqMax_aux mat r m' r' c') >= fst (rowMax mat r'').
 Proof.
   intros.
-  generalize dependent i.
-  generalize dependent m.
-  generalize dependent r.
-  generalize dependent c.
-  induction I.
+  generalize dependent m'.
+  generalize dependent r'.
+  generalize dependent c'.
+  induction r.
   + intros.
     simpl.
-    assert (i = 0%nat).
-      lia.
-    subst.
-    case_eq (Rlt_dec (mat (0 / n)%nat (0 mod n)) m).
+    assert (r'' = 0%nat). { lia. } subst.
+    destruct_with_eqn (rowMax mat 0).
+    apply (f_equal fst) in Heqp. simpl in Heqp.
+    case_eq (Rlt_dec r m').
     - intros. simpl. lra.
     - intros. simpl. lra.
   + intros.
     simpl.
-    case_eq (i =? S I).
+    case_eq (r'' =? S r).
     - rewrite Nat.eqb_eq.
       intro. subst.
-      case_eq (Rlt_dec (mat (S I / n)%nat (S I mod n)) m).
+      destruct_with_eqn (rowMax mat (S r)).
+      admit.
+      (*
+      case_eq (Rlt_dec r0 m').
       * intros.
         apply rSqMax_aux_running_max_correct.
         lra.
       * intros.
         apply rSqMax_aux_running_max_correct.
         lra.
+      *)
     - intros.
-      case_eq (Rlt_dec (mat (S I / n)%nat (S I mod n)) m).
+      apply Nat.eqb_neq in H0.
+      destruct_with_eqn (rowMax mat (S r)).
+      case_eq (Rlt_dec r0 m').
       * intros.
-        apply IHI.
-        ** assumption.
-        ** intros.
-           apply Nat.eqb_neq in H2.
-           lia.
-      * intros.
-        apply IHI.
-        apply H1.
-        apply Nat.eqb_neq in H2.
+        apply IHr.
         lia.
-Qed.
+      * intros.
+        apply IHr.
+        lia.
+Admitted.
 
 (* Max over a real matrix *)
-Definition rSqMax {n : nat} (mat : RealSquare n) := rSqMax_aux mat (n * n - 1) 0 0 0.
+Definition rSqMax {n : nat} (mat : @WF_RSquare n) := rSqMax_aux mat (n * n - 1) 0 0 0.
+
+Definition cmod_mat {n : nat} (mat : @WF_Square n) : @WF_Square n = zero_wf.
 
 Definition inftyNorm {n : nat} (m : Square n) :=
   fst (@rSqMax n (fun r c => Cmod (m r c))).
