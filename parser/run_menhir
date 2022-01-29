@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# menhir --coq --coq-no-version-check --coq-lib-path MenhirLib parser.vy
+
+menhir --coq --coq-no-version-check parser.vy
