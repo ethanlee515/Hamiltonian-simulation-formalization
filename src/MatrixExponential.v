@@ -73,9 +73,44 @@ Fixpoint rowMax_aux {n : nat} (mat : RealSquare n) r c currentMax currentC :=
       (elem, c)
   in
   match c with
-  | O => (newMax, c)
+  | O => (newMax, newC)
   | S c' => rowMax_aux mat r c' newMax newC
   end.
+
+Lemma rowMax_aux_attained :
+  forall n (mat : RealSquare n) r c currentMax currentC,
+    (forall i j, mat i j >= 0) ->
+    currentMax = 0 \/ mat r currentC = currentMax ->
+    let (max_val, max_loc) := rowMax_aux mat r c currentMax currentC in
+    mat r max_loc = max_val.
+Proof.
+  intros n mat r c currentMax currentC entries_ge0 current_good.
+  generalize dependent currentMax.
+  generalize dependent currentC.
+  induction c.
+  - intros currentC currentMax current_good. simpl.
+    case_eq (Rlt_dec (mat r 0%nat) currentMax).
+    + intros.
+      destruct current_good.
+      * subst.
+        assert (mat r 0%nat >= 0). {
+          apply entries_ge0.
+        }
+        lra.
+      * assumption.
+    + intros.
+      reflexivity.
+  - intros.
+    simpl.
+    case_eq (Rlt_dec (mat r (S c)) currentMax).
+    + intros.
+      apply IHc.
+      assumption.
+    + intros.
+      apply IHc.
+      right.
+      reflexivity.
+Qed.
 
 Lemma rowMax_aux_currentMax :
   forall n (mat : RealSquare n) r c currentMax currentC y,
@@ -128,6 +163,18 @@ Qed.
 
 Definition rowMax {n : nat} (mat : @WF_RSquare n) (r : nat) := rowMax_aux (`mat) r n 0 (n - 1).
 
+Lemma rowMax_attained :
+  forall n (mat : @WF_RSquare n) r,
+    (forall i j, `mat i j >= 0) ->
+    let (max_val, max_loc) := rowMax mat r in
+    `mat r max_loc = max_val.
+Proof.
+  intros.
+  apply rowMax_aux_attained.
+  assumption.
+  left. reflexivity.
+Qed.
+
 Lemma rowMax_ub :
   forall n (mat : @WF_RSquare n),
     (forall r c, `mat r c >= 0) ->
@@ -174,6 +221,31 @@ Fixpoint rSqMax_aux {n : nat}
   | O => (newMax, (newR, newC))
   | S r' => rSqMax_aux mat r' newMax newR newC
   end.
+
+(* TODO Prove that this is attained too *)
+Lemma rSqMax_aux_attained :
+  forall n (mat : @WF_RSquare n) r currentMax currentR currentC,
+    (forall i j, `mat i j >= 0) ->
+    currentMax = 0 \/ `mat currentR currentC = currentMax ->
+    let '(maxVal, (maxR, maxC)) := rSqMax_aux mat r currentMax currentR currentC in
+    `mat maxR maxC = maxVal.
+Proof.
+  intros n mat r m' r' c' entries_ge0 current_good.
+  generalize dependent m'.
+  generalize dependent r'.
+  generalize dependent c'.
+  induction r.
+  - intros c' r' m' current_good.
+    simpl.
+    destruct_with_eqn (rowMax mat 0).
+    apply (f_equal fst) in Heqp as r_def.
+    simpl in r_def.
+    symmetry in r_def.
+    subst.
+    case_eq (Rlt_dec (fst (rowMax mat 0)) m').
+    intros.
+    Check rowMax_attained.
+Admitted.
 
 Lemma rSqMax_aux_nonneg :
   forall n mat r m' r' c',
@@ -327,19 +399,66 @@ Proof.
 Admitted.
 
 (* Max over a real matrix *)
-Definition rSqMax {n : nat} (mat : @WF_RSquare n) := rSqMax_aux mat (n * n - 1) 0 0 0.
+Definition rSqMax {n : nat} (mat : @WF_RSquare n) := rSqMax_aux mat (n - 1) 0 0 0.
 
-Definition cmod_mat {n : nat} (mat : @WF_Square n) : @WF_Square n = zero_wf.
-
-Definition inftyNorm {n : nat} (m : Square n) :=
-  fst (@rSqMax n (fun r c => Cmod (m r c))).
-
-Lemma if_both_nonneg :
-  forall a b c d, a >= 0 -> b >= 0 -> (if Rlt_dec c d then a else b) >= 0.
+Lemma rSqMax_ub :
+  forall n (mat : @WF_RSquare n) r c,
+    (forall i j, `mat i j >= 0) ->
+    fst (rSqMax mat) >= `mat r c.
 Proof.
-  intros.
-  case (Rlt_dec c d); intro; assumption.
+  unfold rSqMax.
+  intros n mat r c entries_ge0.
+  case_eq (r <? n).
+  - intro r_bounded.
+    apply Nat.ltb_lt in r_bounded.
+    apply Rge_trans with (r2 := fst (rowMax mat r)).
+    + apply rSqMax_aux_ub.
+      lia.
+    + apply rowMax_ub.
+      assumption.
+  - intro r_bad.
+    apply Nat.ltb_ge in r_bad.
+    assert (`mat r c = 0) as bad_val. {
+      destruct mat as [m_val m_wf].
+      simpl.
+      apply m_wf.
+      lia.
+    }
+    rewrite bad_val.
+    apply Rge_trans with (r2 := fst (rowMax mat 0)).
+    + apply rSqMax_aux_ub.
+      lia.
+    + apply Rge_trans with (r2 := (`mat 0%nat 0%nat)).
+      * apply rowMax_ub.
+        assumption.
+      * apply entries_ge0.
 Qed.
+
+Definition cmod_mat_val {n : nat} (mat : @WF_Square n) : (RealSquare n) :=
+  fun x => fun y => Cmod (`mat x y).
+
+Lemma cmod_mat_wf :
+  forall n (mat : @WF_Square n), isWF_ReSq (cmod_mat_val mat).
+Proof.
+  unfold isWF_ReSq.
+  intros.
+  unfold cmod_mat_val.
+  destruct mat as [mat_v mat_wf].
+  simpl.
+  assert (mat_v x y = 0) as out_of_bound. {
+    unfold WF_Matrix in mat_wf.
+    apply mat_wf.
+    assumption.
+  }
+  rewrite out_of_bound.
+  apply Cmod_0.
+Qed.
+
+Definition cmod_mat {n : nat} (mat : @WF_Square n) : (@WF_RSquare n) :=
+  exist (@isWF_ReSq n) (cmod_mat_val mat) (cmod_mat_wf n mat).
+
+Definition inftyNorm {n : nat} (m : @WF_Square n) :=
+  fst (rSqMax (cmod_mat m)).
 
 Lemma inftyNorm_nonneg :
   forall n mat, @inftyNorm n mat >= 0.
@@ -354,99 +473,20 @@ Proof.
   apply Cmod_ge_0.
 Qed.
 
-Definition inftyNorm_wf {n : nat} (m : @WF_Square n) :=
-  inftyNorm (proj1_sig m).
-
-Lemma inftyNormwf_nonneg :
-  forall (n : nat) (m : @WF_Square n), inftyNorm_wf m >= 0.
+Lemma inftyNorm_bound :
+  forall (n : nat) (m : @WF_Square n) r c, (n > 0)%nat -> inftyNorm m >= Cmod ((`m) r c).
 Proof.
   intros.
-  unfold inftyNorm_wf.
-  apply inftyNorm_nonneg.
-Qed.
-
-Lemma inftyNormwf_bound :
-  forall (n : nat) (m : @WF_Square n) r c, (n > 0)%nat -> inftyNorm_wf m >= Cmod ((`m) r c).
-Proof.
-  intros.
-  destruct m as [val wf].
-  unfold inftyNorm_wf.
-  simpl.
   unfold inftyNorm.
-  case_eq (r <? n).
-  + case_eq (c <? n).
-    - intros c_bound r_bound.
-      apply Nat.ltb_lt in c_bound.
-      apply Nat.ltb_lt in r_bound.
-      remember (r * n + c)%nat as index.
-      assert (r = (index / n)%nat) as r_val.
-        rewrite Heqindex.
-        rewrite Nat.div_add_l.
-        rewrite Nat.div_small.
-        rewrite Nat.add_0_r.
-        reflexivity.
-        assumption.
-        lia.
-      rewrite r_val.
-      assert (c = (index mod n)) as c_val.
-        rewrite Heqindex.
-        rewrite Nat.add_comm.
-        rewrite Nat.mod_add.
-        rewrite Nat.mod_small.
-        reflexivity.
-        assumption.
-        lia.
-      rewrite c_val.
-      unfold rSqMax.
-      Check rSqMax_aux_correct.
-      apply rSqMax_aux_correct
-        with (mat := (fun r0 c0 : nat => Cmod (val r0 c0))).
-        rewrite Heqindex.
-        assert (n * n - 1 = (n * (n - 1)) + (n - 1))%nat as split_index.
-          rewrite Nat.add_sub_assoc.
-          rewrite mult_n_Sm.
-          assert (S (n - 1) = n) as minus_then_plus_1.
-            lia.
-          rewrite minus_then_plus_1.
-          reflexivity.
-          lia.
-        rewrite split_index.
-        apply plus_le_compat.
-        rewrite mult_comm.
-        apply mult_le_compat_l.
-        lia.
-        lia.
-        lra.
-        
-        intros.
-        apply Rle_ge.
-        apply Cmod_ge_0.
-    - intros.
-      unfold WF_Matrix in wf.
-      apply Nat.ltb_nlt in H0.
-      assert (r >= n \/ c >= n)%nat as out_of_bound.
-        lia.
-      apply wf in out_of_bound.
-      rewrite out_of_bound.
-      rewrite Cmod_0.
-      unfold rSqMax.
-      apply rSqMax_aux_nonneg.
-        apply Rge_refl.
-      intros. apply Rle_ge. apply Cmod_ge_0.
-  + intros.
-    unfold WF_Matrix in wf.
-    apply Nat.ltb_nlt in H0.
-    assert (r >= n \/ c >= n)%nat as out_of_bound.
-      lia.
-    apply wf in out_of_bound.
-    rewrite out_of_bound.
-    rewrite Cmod_0.
-    unfold rSqMax.
-    apply rSqMax_aux_nonneg.
-      lra.
-      intros. apply Rle_ge. apply Cmod_ge_0.
+  apply rSqMax_ub with (mat := cmod_mat m).
+  intros.
+  unfold cmod_mat.
+  simpl.
+  unfold cmod_mat_val.
+  apply Rle_ge.
+  apply Cmod_ge_0.
 Qed.
-
+   
 Lemma inftyNorm_zero_aux :
   forall (n : nat) (m : @WF_Square n), (n > 0)%nat -> @inftyNorm_wf n m = 0 -> m = zero_wf.
 Proof.
