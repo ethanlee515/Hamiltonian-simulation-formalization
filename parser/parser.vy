@@ -1,10 +1,8 @@
 %{
-
 Require Import String.
 Require Import HSF_Syntax.
 Require Import Reals.
 Require Import PauliRotations.
-
 %}
 
 %token<R> REALVAL
@@ -43,7 +41,7 @@ h_program_top:
 
 h_program:
 | HSF progname=ID SITE decls=declarations HAM insts=instructions ENDHSF
-{makeHProg decls insts}
+{ makeHProg decls insts }
 
 declarations:
 |
