@@ -1,40 +1,98 @@
 %{
 
-	Require Import String.
+Require Import String.
+Require Import HSF_Syntax.
+Require Import Reals.
+Require Import PauliRotations.
 
-		Inductive ast :=
-		| OpExpr : string -> ast -> ast -> ast
-		| Num : nat -> ast.
+%}
 
-		(* We make a type synonym to differentiate
-		 from nat extracted from other files. *)
-		Definition num : Type := nat % type.
+%token<R> REALVAL
 
-		%}
+%token<string> ID
 
-		%token<num> NUM
+%token EOF DOT LEFTBRAC RIGHTBRAC COLON PLUS SUBTR DIVIDE SEMICOLON SITE HAM HSF ENDHSF XTOK YTOK ZTOK ITOK
 
-		(*
-		 This represents all operators. Giving each
-		 operator its own token probably would have
-		 been cleaner, but I wanted to include
-		 strings in the example.
-		 *)
-		%token<string> OP
+%type<H_Program> h_program
 
-		%token LPAREN RPAREN EOF
+%type<list string> declarations
 
-		%type<ast> expr
+%type<list HSF_Term> instructions
 
-		%start<ast> top_expr
-		%%
+%type<HSF_Term> instruction
 
-		top_expr:
-		| e=expr EOF
-{ e }
+%type<list TIH_Term> tih
 
-expr:
-| i=NUM
-{ Num i }
-| LPAREN op=OP e1=expr e2=expr RPAREN
-{ OpExpr op e1 e2 }
+%type<list TIH_Term> tih_rest
+
+%type<TIH_Term> tih_term
+
+%type<list HPauli> hPaulis1
+
+%type<list HPauli> hPaulis
+
+%type<HPauli> hPauli
+
+%start<H_Program> h_program_top
+
+%%
+
+h_program_top:
+| prog=h_program EOF
+{ prog }
+
+h_program:
+| HSF progname=ID SITE decls=declarations HAM insts=instructions ENDHSF
+{makeHProg decls insts}
+
+declarations:
+|
+{ nil }
+| s=ID rest=declarations
+{ s::rest }
+
+instructions:
+|
+{ nil }
+| inst=instruction rest=instructions
+{ inst :: rest }
+
+instruction:
+| LEFTBRAC termid=ID COLON duration=REALVAL SEMICOLON ham=tih RIGHTBRAC
+{ makeHSF_Term termid (HScReal duration "?") ham }
+
+tih:
+| t=tih_term r=tih_rest
+{ t :: r }
+
+tih_rest:
+|
+{ nil }
+| PLUS t=tih_term r=tih_rest
+{ t :: r}
+
+tih_term:
+| scale_val=REALVAL hp=hPaulis1
+{ makeTIH_Term (HScReal scale_val "?") hp }
+| hp=hPaulis1
+{ makeTIH_Term (HScReal (INR 1) "1") hp }
+
+hPaulis1:
+| head=hPauli tail=hPaulis
+{ head :: tail }
+
+hPaulis:
+|
+{ nil }
+| head=hPauli tail=hPaulis
+{ head :: tail }
+
+hPauli:
+| loc=ID DOT XTOK
+{ HIdOp loc Pauli_X }
+| loc=ID DOT YTOK
+{ HIdOp loc Pauli_Y }
+| loc=ID DOT ZTOK
+{ HIdOp loc Pauli_Z }
+| loc=ID DOT ITOK
+{ HIdOp loc Pauli_I }
