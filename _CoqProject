@@ -1,18 +1,31 @@
 -R . HSF
+#-arg -profile-ltac
 
-QWIRE/Prelim.v
-QWIRE/RealAux.v
-QWIRE/Complex.v
-QWIRE/Matrix.v
-QWIRE/Quantum.v
+SQIR/externals/QWIRE/Prelim.v
+SQIR/externals/QWIRE/RealAux.v
+SQIR/externals/QWIRE/Complex.v
+SQIR/externals/QWIRE/Matrix.v
+SQIR/externals/QWIRE/Quantum.v
+SQIR/externals/QWIRE/Dirac.v
+SQIR/externals/QWIRE/Proportional.v
 
-src/HSF_Syntax.v
-src/Compile.v
-src/MatrixExponential.v
-src/Diagonalization.v
-src/Semantics.v
-src/PauliRotations.v
-src/Qasm.v
-src/Trotterize.v
+SQIR/externals/euler/Misc.v
+SQIR/externals/euler/Primes.v
+SQIR/externals/euler/PTotient.v
+SQIR/externals/euler/Primisc.v
+SQIR/externals/euler/Totient.v
+SQIR/externals/euler/Prod.v
+SQIR/externals/euler/Harmonic.v
+SQIR/externals/euler/Log.v
+SQIR/externals/euler/Asympt.v
+SQIR/externals/euler/AltPrimes.v
 
-tests/TheoremTesting.v
+SQIR/SQIR/SQIR.v
+SQIR/SQIR/UnitarySem.v
+SQIR/SQIR/DensitySem.v
+SQIR/SQIR/NDSem.v
+SQIR/SQIR/VectorStates.v
+SQIR/SQIR/UnitaryOps.v
+SQIR/SQIR/Equivalences.v
+SQIR/SQIR/DiscreteProb.v
+SQIR/SQIR/AltGateSet.v
